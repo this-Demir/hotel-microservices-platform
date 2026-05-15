@@ -43,19 +43,36 @@ Checklist of every step across all phases. Check off items as they are completed
 
 ## Phase 4 — hotel-service Implementation
 
-- [ ] `HotelAdminService` — CRUD for Hotels, Rooms, RoomAvailability
-- [ ] `SearchService` — filter by destination / dates / guest count
-- [ ] `SearchService` — Redis cache-aside for hotel details
-- [ ] `SearchService` — 15% discount when JWT present
-- [ ] `BookingService` — `SELECT FOR UPDATE` transaction
-- [ ] `BookingService` — capacity decrement + `IsVacant` auto-set
-- [ ] `BookingService` — publish `BookingEvent` to RabbitMQ after commit
-- [ ] `NotificationService` — query `Notifications` table (paginated)
-- [ ] `NotificationService` — mark as read
-- [ ] Register all concrete services in `hotel-service/Program.cs`
-- [ ] Add `AdminEmail` field to `Hotels` model (required by cron-jobs)
-- [ ] EF Core migration (`dotnet ef migrations add Init`)
-- [ ] Apply migration against Supabase
+- [x] `HotelAdminService` — CRUD for Hotels, Rooms, RoomAvailability
+- [x] `SearchService` — filter by destination / dates / guest count
+- [x] `SearchService` — Redis cache-aside for hotel details
+- [x] `SearchService` — 15% discount when JWT present
+- [x] `BookingService` — `SELECT FOR UPDATE` transaction
+- [x] `BookingService` — capacity decrement + `IsVacant` auto-set
+- [x] `BookingService` — publish `BookingEvent` to RabbitMQ after commit
+- [x] `NotificationService` — query `Notifications` table (paginated)
+- [x] `NotificationService` — mark as read
+- [x] Register all concrete services in `hotel-service/Program.cs`
+- [x] Add `AdminEmail` field to `Hotels` model (required by cron-jobs)
+- [x] EF Core migrations (`InitialCreate` + `AddHotelImageUrl`)
+- [x] Apply migration against Supabase (via SQL Editor — IPv6 workaround)
+
+---
+
+## Phase 4b — hotel-service Unit Tests
+
+- [x] xUnit test project at `src/hotel-service-tests/`
+- [x] EF Core InMemory database (TransactionIgnoredWarning suppressed for BookingService)
+- [x] Moq `IConnectionMultiplexer` (Redis) — cache-miss and cache-hit paths
+- [x] Moq `IConnection` / `IChannel` (RabbitMQ) — publish no-throw
+- [x] `TestableBookingService` overrides `GetAvailabilityForUpdateAsync` with LINQ (replaces raw `SELECT FOR UPDATE`)
+- [x] `HotelAdminServiceTests` — 11 tests (CRUD, pagination, availability upsert)
+- [x] `SearchServiceTests` — 8 tests (discount, cache hit/miss, empty result)
+- [x] `BookingServiceTests` — 8 tests (capacity decrement, IsVacant flip, discount, pagination)
+- [x] `NotificationServiceTests` — 3 tests (scoped query, mark-read, wrong-user guard)
+- [x] 30/30 tests passing, 0 warnings
+- [x] CI workflow updated — `test` job gates `build-and-push`; triggers on PRs
+- [x] `.mcp.json` added to `.gitignore`
 
 ---
 
