@@ -141,10 +141,10 @@ Checklist of every step across all phases. Check off items as they are completed
 - [x] Frontend redesigned to match CLAUDE-DESIGN spec (`/CLAUDE-DESIGN/design_handoff_stayease`)
 
 ### admin-client
-- [ ] Cognito auth flow (admin login)
-- [ ] Hotel list + create / edit / delete
-- [ ] Room management — add rooms to a hotel
-- [ ] Availability management — set dates, capacity, vacant status
+- [x] Mock auth flow (admin login with localStorage; Cognito wiring deferred to Phase 6)
+- [x] Hotel list + create / edit / delete — paginated table, HotelModal, ConfirmDialog
+- [x] Room management — add rooms to a hotel (RoomModal with preset + custom types)
+- [x] Availability management — set dates, capacity, vacant status (AvailabilityModal + inline table)
 
 ---
 
