@@ -1,3 +1,4 @@
+using CommentsService.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using MongoDB.Driver;
 
@@ -24,8 +25,7 @@ builder.Services
         };
     });
 
-// Application services — registered after concrete classes are added in Priority 3
-// builder.Services.AddScoped<ICommentService, CommentService>();
+builder.Services.AddScoped<ICommentService, CommentService>();
 
 var app = builder.Build();
 

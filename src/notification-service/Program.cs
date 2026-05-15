@@ -1,4 +1,6 @@
 using NotificationService.Messaging;
+using NotificationService.Services;
+using Npgsql;
 using RabbitMQ.Client;
 using Resend;
 
@@ -21,12 +23,15 @@ builder.Services.AddSingleton<IConnection>(_ =>
     return factory.CreateConnectionAsync().GetAwaiter().GetResult();
 });
 
+// Supabase PostgreSQL (for writing in-app notifications)
+builder.Services.AddSingleton(NpgsqlDataSource.Create(
+    builder.Configuration.GetConnectionString("Supabase")!));
+
 // RabbitMQ background consumer
 builder.Services.AddHostedService<BookingEventConsumer>();
 
-// Concrete implementations registered in Priority 4
-// builder.Services.AddScoped<IEmailService, EmailService>();
-// builder.Services.AddScoped<INotificationWriter, NotificationWriter>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<INotificationWriter, NotificationWriter>();
 
 var app = builder.Build();
 

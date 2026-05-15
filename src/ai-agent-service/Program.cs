@@ -1,3 +1,4 @@
+using AiAgentService.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using OpenAI;
 
@@ -28,8 +29,7 @@ builder.Services.AddSingleton(new OpenAIClient(
 builder.Services.AddHttpClient("hotel-service", client =>
     client.BaseAddress = new Uri(builder.Configuration["ServiceUrls:HotelService"]!));
 
-// Application services — registered after concrete classes are added in Priority 3
-// builder.Services.AddScoped<IAiAgentService, AiAgentService>();
+builder.Services.AddScoped<IAiAgentService, AgentService>();
 
 var app = builder.Build();
 
