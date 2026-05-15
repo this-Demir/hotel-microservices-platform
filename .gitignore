@@ -36,14 +36,32 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # ============================================================
-# Environment & Secrets 
+# Environment & Secrets
 # ============================================================
 .env
 .env.*
 !.env.example
-appsettings.Development.json
-appsettings.Local.json
+
+# All environment-specific appsettings (Development, Staging, Production, Local, etc.)
+# Base appsettings.json (placeholder values only) remains tracked.
+appsettings.*.json
+
+# .NET user secrets
 secrets.json
+
+# Certificates & private keys — never commit these
+*.pfx
+*.p12
+*.pem
+*.key
+*.crt
+*.cer
+
+# npm auth tokens
+.npmrc
+
+# launchSettings.json carries environmentVariables — safe to commit only if it has no secrets.
+# If you add API keys under environmentVariables, move them to appsettings.Development.json instead.
 
 # ============================================================
 # Docker
