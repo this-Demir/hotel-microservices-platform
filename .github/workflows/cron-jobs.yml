@@ -1,0 +1,37 @@
+name: cron-jobs CI/CD
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/cron-jobs/**"
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Install Lambda tools
+        run: dotnet tool install -g Amazon.Lambda.Tools
+
+      - name: Package Lambda
+        working-directory: src/cron-jobs
+        run: dotnet lambda package -c Release -o CapacityCheckerFunction.zip
+
+      - name: Deploy to AWS Lambda
+        working-directory: src/cron-jobs
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          dotnet lambda deploy-function CapacityCheckerFunction \
+            --function-role ${{ secrets.LAMBDA_EXECUTION_ROLE_ARN }} \
+            --region ${{ secrets.AWS_REGION }}

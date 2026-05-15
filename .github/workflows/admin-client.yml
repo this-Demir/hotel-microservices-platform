@@ -1,0 +1,32 @@
+name: admin-client CI/CD
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/admin-client/**"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: src/admin-client/package-lock.json
+
+      - name: Install dependencies
+        working-directory: src/admin-client
+        run: npm ci
+
+      - name: Build
+        working-directory: src/admin-client
+        run: npm run build
+
+      # Vercel deployment is triggered automatically via Vercel GitHub integration.
+      # This job validates the build before Vercel picks it up.
