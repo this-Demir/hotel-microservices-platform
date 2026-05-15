@@ -1,4 +1,5 @@
 using HotelService.Data;
+using HotelService.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using RabbitMQ.Client;
@@ -8,6 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+builder.Services.AddHttpClient();
 
 // Supabase PostgreSQL
 builder.Services.AddDbContext<HotelDbContext>(options =>
@@ -41,11 +43,11 @@ builder.Services.AddSingleton<IConnection>(_ =>
     return factory.CreateConnectionAsync().GetAwaiter().GetResult();
 });
 
-// Application services — registered after concrete classes are added in Priority 4
-// builder.Services.AddScoped<IHotelAdminService, HotelAdminService>();
-// builder.Services.AddScoped<ISearchService, SearchService>();
-// builder.Services.AddScoped<IBookingService, BookingService>();
-// builder.Services.AddScoped<INotificationService, NotificationService>();
+// Application services
+builder.Services.AddScoped<IHotelAdminService, HotelAdminService>();
+builder.Services.AddScoped<ISearchService, SearchService>();
+builder.Services.AddScoped<IBookingService, BookingService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 var app = builder.Build();
 

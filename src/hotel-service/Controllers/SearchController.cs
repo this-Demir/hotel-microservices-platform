@@ -15,4 +15,12 @@ public class SearchController(ISearchService searchService) : ControllerBase
         var results = await searchService.SearchAsync(request, isAuthenticated);
         return Ok(results);
     }
+
+    [HttpGet("{roomId:guid}")]
+    public async Task<IActionResult> GetRoomDetail(Guid roomId)
+    {
+        var isAuthenticated = User.Identity?.IsAuthenticated ?? false;
+        var detail = await searchService.GetRoomDetailAsync(roomId, isAuthenticated);
+        return detail is null ? NotFound() : Ok(detail);
+    }
 }

@@ -10,13 +10,22 @@ namespace HotelService.Controllers;
 [Authorize]
 public class BookingController(IBookingService bookingService) : ControllerBase
 {
+    [HttpGet]
+    public async Task<IActionResult> GetReservations([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    {
+        var userId = User.FindFirst("sub")?.Value
+            ?? throw new InvalidOperationException("sub claim missing");
+        return Ok(await bookingService.GetUserReservationsAsync(userId, page, pageSize));
+    }
+
     [HttpPost]
     public async Task<IActionResult> Book([FromBody] BookRoomRequest request)
     {
         var userId = User.FindFirst("sub")?.Value
             ?? throw new InvalidOperationException("sub claim missing");
+        var userEmail = User.FindFirst("email")?.Value ?? string.Empty;
         var isAuthenticated = User.Identity?.IsAuthenticated ?? false;
-        var booking = await bookingService.BookRoomAsync(request, userId, isAuthenticated);
+        var booking = await bookingService.BookRoomAsync(request, userId, userEmail, isAuthenticated);
         return Ok(booking);
     }
 }

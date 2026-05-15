@@ -5,13 +5,37 @@ on:
     branches: [main]
     paths:
       - "src/hotel-service/**"
+      - "src/hotel-service-tests/**"
+  pull_request:
+    paths:
+      - "src/hotel-service/**"
+      - "src/hotel-service-tests/**"
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}/hotel-service
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Restore
+        run: dotnet restore src/hotel-service-tests/hotel-service-tests.csproj
+
+      - name: Test
+        run: dotnet test src/hotel-service-tests/hotel-service-tests.csproj --no-restore --logger "console;verbosity=minimal"
+
   build-and-push:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: read

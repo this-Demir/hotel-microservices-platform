@@ -42,6 +42,17 @@ public class AdminController(IHotelAdminService adminService) : ControllerBase
         return deleted ? NoContent() : NotFound();
     }
 
+    [HttpPost("hotels/{id:guid}/image")]
+    public async Task<IActionResult> UploadHotelImage(Guid id, IFormFile file)
+    {
+        var hotel = await adminService.UploadHotelImageAsync(id, file);
+        return hotel is null ? NotFound() : Ok(hotel);
+    }
+
+    [HttpGet("rooms")]
+    public async Task<IActionResult> GetRooms([FromQuery] Guid hotelId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        => Ok(await adminService.GetRoomsAsync(hotelId, page, pageSize));
+
     [HttpPost("rooms")]
     public async Task<IActionResult> CreateRoom([FromBody] CreateRoomRequest request)
         => Ok(await adminService.CreateRoomAsync(request));

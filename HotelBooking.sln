@@ -29,6 +29,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "cron-jobs", "cron-jobs", "{
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CapacityCheckerFunction", "src\cron-jobs\CapacityCheckerFunction.csproj", "{402401FF-29E2-42E3-8991-81F78555E25E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "hotel-service-tests", "src\hotel-service-tests\hotel-service-tests.csproj", "{A5CDCB74-982E-4DC7-8730-5E382C6F2107}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -111,6 +113,18 @@ Global
 		{402401FF-29E2-42E3-8991-81F78555E25E}.Release|x64.Build.0 = Release|Any CPU
 		{402401FF-29E2-42E3-8991-81F78555E25E}.Release|x86.ActiveCfg = Release|Any CPU
 		{402401FF-29E2-42E3-8991-81F78555E25E}.Release|x86.Build.0 = Release|Any CPU
+		{A5CDCB74-982E-4DC7-8730-5E382C6F2107}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A5CDCB74-982E-4DC7-8730-5E382C6F2107}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A5CDCB74-982E-4DC7-8730-5E382C6F2107}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{A5CDCB74-982E-4DC7-8730-5E382C6F2107}.Debug|x64.Build.0 = Debug|Any CPU
+		{A5CDCB74-982E-4DC7-8730-5E382C6F2107}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{A5CDCB74-982E-4DC7-8730-5E382C6F2107}.Debug|x86.Build.0 = Debug|Any CPU
+		{A5CDCB74-982E-4DC7-8730-5E382C6F2107}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A5CDCB74-982E-4DC7-8730-5E382C6F2107}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A5CDCB74-982E-4DC7-8730-5E382C6F2107}.Release|x64.ActiveCfg = Release|Any CPU
+		{A5CDCB74-982E-4DC7-8730-5E382C6F2107}.Release|x64.Build.0 = Release|Any CPU
+		{A5CDCB74-982E-4DC7-8730-5E382C6F2107}.Release|x86.ActiveCfg = Release|Any CPU
+		{A5CDCB74-982E-4DC7-8730-5E382C6F2107}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -128,5 +142,6 @@ Global
 		{952E38DF-7356-45D1-A70B-818463187E13} = {1CB8BB7C-F4F6-0936-483F-D8C7C5C6E4B1}
 		{E4BB6AB8-B7BB-08B3-6E5B-7E5A442B2A81} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{402401FF-29E2-42E3-8991-81F78555E25E} = {E4BB6AB8-B7BB-08B3-6E5B-7E5A442B2A81}
+		{A5CDCB74-982E-4DC7-8730-5E382C6F2107} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 EndGlobal
