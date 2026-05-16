@@ -8,7 +8,7 @@ namespace AiAgentService.Services;
 
 public class AgentService(OpenAIClient openAIClient, IHttpClientFactory httpClientFactory) : IAiAgentService
 {
-    private static readonly ChatTool SearchTool = ChatTool.CreateFunctionTool(
+    internal static readonly ChatTool SearchTool = ChatTool.CreateFunctionTool(
         functionName: "search_hotels",
         functionDescription: "Search available hotels by location and dates",
         functionParameters: BinaryData.FromString("""
@@ -24,7 +24,7 @@ public class AgentService(OpenAIClient openAIClient, IHttpClientFactory httpClie
             }
             """));
 
-    private static readonly ChatTool BookTool = ChatTool.CreateFunctionTool(
+    internal static readonly ChatTool BookTool = ChatTool.CreateFunctionTool(
         functionName: "book_hotel",
         functionDescription: "Book a hotel room for the authenticated user",
         functionParameters: BinaryData.FromString("""
@@ -80,7 +80,7 @@ public class AgentService(OpenAIClient openAIClient, IHttpClientFactory httpClie
         }
     }
 
-    private async Task<string> ExecuteToolCallAsync(ChatToolCall toolCall, string userJwt)
+    internal async Task<string> ExecuteToolCallAsync(ChatToolCall toolCall, string userJwt)
     {
         var http = httpClientFactory.CreateClient("hotel-service");
         http.DefaultRequestHeaders.Authorization =

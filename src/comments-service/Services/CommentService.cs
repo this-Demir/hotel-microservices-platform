@@ -6,7 +6,7 @@ namespace CommentsService.Services;
 
 public class CommentService : ICommentService
 {
-    private readonly IMongoCollection<HotelComment> _collection;
+    protected readonly IMongoCollection<HotelComment> _collection;
 
     public CommentService(IMongoClient mongoClient, IConfiguration config)
     {
@@ -16,6 +16,12 @@ public class CommentService : ICommentService
         var indexModel = new CreateIndexModel<HotelComment>(
             Builders<HotelComment>.IndexKeys.Ascending(c => c.HotelId));
         _collection.Indexes.CreateOne(indexModel);
+    }
+
+    // For unit testing — bypasses MongoDB client wiring
+    internal CommentService(IMongoCollection<HotelComment> collection)
+    {
+        _collection = collection;
     }
 
     public async Task<CommentResponse> CreateAsync(CreateCommentRequest request, string userId)
@@ -45,13 +51,14 @@ public class CommentService : ICommentService
     {
         var filter = Builders<HotelComment>.Filter.Eq(c => c.HotelId, hotelId);
         var total = (int)await _collection.CountDocumentsAsync(filter);
-        var items = await _collection
-            .Find(filter)
-            .SortByDescending(c => c.CreatedAt)
-            .Skip((page - 1) * pageSize)
-            .Limit(pageSize)
-            .ToListAsync();
-
+        var options = new FindOptions<HotelComment>
+        {
+            Sort = Builders<HotelComment>.Sort.Descending(c => c.CreatedAt),
+            Skip = (page - 1) * pageSize,
+            Limit = pageSize,
+        };
+        using var cursor = await _collection.FindAsync(filter, options);
+        var items = await cursor.ToListAsync();
         return new PagedResult<CommentResponse>(items.Select(ToResponse), page, pageSize, total);
     }
 
