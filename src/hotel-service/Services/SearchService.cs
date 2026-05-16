@@ -18,10 +18,15 @@ public class SearchService(HotelDbContext db, IConnectionMultiplexer redis) : IS
         var cacheKey = $"search:{request.Location}:{checkIn:O}:{checkOut:O}" +
                        $":{request.GuestCount}:{request.Page}:{request.PageSize}:{isAuthenticated}";
 
-        var cache = redis.GetDatabase();
-        var cached = await cache.StringGetAsync(cacheKey);
-        if (cached.HasValue)
-            return JsonSerializer.Deserialize<PagedResult<SearchResultItem>>(cached!)!;
+        IDatabase? cache = null;
+        try
+        {
+            cache = redis.GetDatabase();
+            var cached = await cache.StringGetAsync(cacheKey);
+            if (cached.HasValue)
+                return JsonSerializer.Deserialize<PagedResult<SearchResultItem>>(cached!)!;
+        }
+        catch { /* Redis unavailable — fall through to DB */ }
 
         var query = db.RoomAvailabilities
             .Include(ra => ra.Room).ThenInclude(r => r.Hotel)
@@ -52,7 +57,8 @@ public class SearchService(HotelDbContext db, IConnectionMultiplexer redis) : IS
             .ToListAsync();
 
         var result = new PagedResult<SearchResultItem>(items, request.Page, request.PageSize, total);
-        await cache.StringSetAsync(cacheKey, JsonSerializer.Serialize(result), CacheTtl);
+        try { if (cache is not null) await cache.StringSetAsync(cacheKey, JsonSerializer.Serialize(result), CacheTtl); }
+        catch { /* Redis unavailable — skip cache write */ }
         return result;
     }
 

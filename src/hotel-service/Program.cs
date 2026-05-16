@@ -29,9 +29,21 @@ builder.Services
         };
     });
 
-// Upstash Redis
-builder.Services.AddSingleton<IConnectionMultiplexer>(
-    ConnectionMultiplexer.Connect(builder.Configuration.GetConnectionString("Redis")!));
+// Upstash Redis — use Parse() but set SslHost explicitly so Linux TLS SNI works
+builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
+{
+    var raw = builder.Configuration.GetConnectionString("Redis")!;
+    var opts = ConfigurationOptions.Parse(raw);
+    opts.AbortOnConnectFail = false;
+    // ConfigurationOptions.Parse doesn't populate SslHost from rediss:// on Linux
+    var atIdx = raw.LastIndexOf('@');
+    if (atIdx >= 0)
+    {
+        var hostPort = raw[(atIdx + 1)..];
+        opts.SslHost = hostPort.Contains(':') ? hostPort[..hostPort.LastIndexOf(':')] : hostPort;
+    }
+    return ConnectionMultiplexer.Connect(opts);
+});
 
 // CloudAMQP RabbitMQ
 builder.Services.AddSingleton<IConnection>(_ =>
