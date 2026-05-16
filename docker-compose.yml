@@ -81,19 +81,19 @@ services:
   client:
     build:
       context: ./src/client
+      args:
+        NEXT_PUBLIC_API_URL: "http://localhost:5000"
     ports:
       - "3000:3000"
-    environment:
-      NEXT_PUBLIC_API_URL: "http://localhost:5000"
     depends_on:
       - api-gateway
 
   admin-client:
     build:
       context: ./src/admin-client
+      args:
+        NEXT_PUBLIC_API_URL: "http://localhost:5000"
     ports:
       - "3001:3000"
-    environment:
-      NEXT_PUBLIC_API_URL: "http://localhost:5000"
     depends_on:
       - api-gateway

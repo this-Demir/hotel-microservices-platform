@@ -16,6 +16,13 @@
       "DownstreamHostAndPorts": [ { "Host": "hotel-service", "Port": 8080 } ]
     },
     {
+      "UpstreamPathTemplate": "/api/v1/search/{everything}",
+      "UpstreamHttpMethod": [ "GET" ],
+      "DownstreamPathTemplate": "/api/v1/search/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [ { "Host": "hotel-service", "Port": 8080 } ]
+    },
+    {
       "UpstreamPathTemplate": "/api/v1/bookings/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST" ],
       "DownstreamPathTemplate": "/api/v1/bookings/{everything}",
