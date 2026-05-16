@@ -1,38 +1,99 @@
 version: "3.9"
 
+# All secrets come from .env (gitignored).
+# Copy .env.example → .env and fill in real values before running.
+#
+# Start everything:   docker-compose up --build
+# Backend only:       docker-compose up --build hotel-service comments-service notification-service ai-agent-service api-gateway
+# Tear down:          docker-compose down
+
 services:
-  postgres:
-    image: postgres:16-alpine
+
+  # ── Backend services ────────────────────────────────────────
+
+  hotel-service:
+    build:
+      context: ./src/hotel-service
+    ports:
+      - "5100:8080"
     environment:
-      POSTGRES_USER: hotelbooking
-      POSTGRES_PASSWORD: hotelbooking
-      POSTGRES_DB: hotelbooking
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+      ASPNETCORE_ENVIRONMENT: Docker
+      ConnectionStrings__Postgres: "${SUPABASE_CONNECTION_STRING}"
+      ConnectionStrings__Redis: "${REDIS_URL}"
+      ConnectionStrings__RabbitMQ: "${RABBITMQ_URL}"
+      Cognito__Authority: "${COGNITO_AUTHORITY}"
+      Supabase__Url: "${SUPABASE_URL}"
+      Supabase__ServiceRoleKey: "${SUPABASE_SERVICE_ROLE_KEY}"
+      Supabase__StorageBucket: "hotel-images"
 
-  mongodb:
-    image: mongo:7
+  comments-service:
+    build:
+      context: ./src/comments-service
     ports:
-      - "27017:27017"
-    volumes:
-      - mongo_data:/data/db
+      - "5101:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Docker
+      ConnectionStrings__MongoDB: "${MONGODB_CONNECTION_STRING}"
+      MongoDB__Database: "hotel_comments_db"
+      Cognito__Authority: "${COGNITO_AUTHORITY}"
 
-  redis:
-    image: redis:7-alpine
+  notification-service:
+    build:
+      context: ./src/notification-service
     ports:
-      - "6379:6379"
+      - "5102:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Docker
+      ConnectionStrings__RabbitMQ: "${RABBITMQ_URL}"
+      ConnectionStrings__Supabase: "${SUPABASE_CONNECTION_STRING}"
+      Resend__ApiKey: "${RESEND_API_KEY}"
+      Resend__FromEmail: "${RESEND_FROM_EMAIL}"
 
-  rabbitmq:
-    image: rabbitmq:3-management-alpine
+  ai-agent-service:
+    build:
+      context: ./src/ai-agent-service
     ports:
-      - "5672:5672"   # AMQP
-      - "15672:15672" # Management UI (guest/guest)
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
+      - "5103:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Docker
+      Cognito__Authority: "${COGNITO_AUTHORITY}"
+      OpenAI__ApiKey: "${OPENAI_API_KEY}"
+      ServiceUrls__HotelService: "http://hotel-service:8080"
 
-volumes:
-  postgres_data:
-  mongo_data:
-  rabbitmq_data:
+  api-gateway:
+    build:
+      context: ./src/api-gateway
+    ports:
+      - "5000:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Docker
+      Cognito__Authority: "${COGNITO_AUTHORITY}"
+      Cognito__ClientId: "${COGNITO_CLIENT_ID}"
+      Cors__AllowedOrigins: "http://localhost:3000,http://localhost:3001"
+    depends_on:
+      - hotel-service
+      - comments-service
+      - notification-service
+      - ai-agent-service
+
+  # ── Frontends ────────────────────────────────────────────────
+
+  client:
+    build:
+      context: ./src/client
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: "http://localhost:5000"
+    depends_on:
+      - api-gateway
+
+  admin-client:
+    build:
+      context: ./src/admin-client
+    ports:
+      - "3001:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: "http://localhost:5000"
+    depends_on:
+      - api-gateway

@@ -52,7 +52,7 @@ export async function searchHotels(
   qs.set('guestCount', String(params.guestCount))
   if (params.page) qs.set('page', String(params.page))
   if (params.pageSize) qs.set('pageSize', String(params.pageSize))
-  const res = await fetch(`${API_URL}/api/v1/hotels/search?${qs}`)
+  const res = await fetch(`${API_URL}/api/v1/search?${qs}`)
   if (!res.ok) throw new Error('Failed to search hotels')
   return res.json()
 }
@@ -64,7 +64,7 @@ export async function getRoomDetail(roomId: string): Promise<RoomDetailResponse>
     if (!room) throw new Error('Room not found')
     return room
   }
-  const res = await fetch(`${API_URL}/api/v1/rooms/${roomId}`)
+  const res = await fetch(`${API_URL}/api/v1/search/${roomId}`)
   if (!res.ok) throw new Error('Failed to get room detail')
   return res.json()
 }
@@ -75,9 +75,8 @@ export async function getHotelRooms(hotelId: string): Promise<SearchResultItem[]
     const hotel = mockHotels.find((h) => h.id === hotelId)
     return hotel?.rooms ?? []
   }
-  const res = await fetch(`${API_URL}/api/v1/hotels/${hotelId}/rooms`)
-  if (!res.ok) throw new Error('Failed to get hotel rooms')
-  return res.json()
+  const hotel = await getHotelById(hotelId)
+  return hotel?.rooms ?? []
 }
 
 export async function bookRoom(body: BookRoomRequest, token: string): Promise<BookingResponse> {
@@ -141,10 +140,11 @@ export async function getHotelById(hotelId: string): Promise<MockHotel | null> {
     await delay(300)
     return mockHotels.find((h) => h.id === hotelId) ?? null
   }
-  const res = await fetch(`${API_URL}/api/v1/hotels/${hotelId}`)
+  const res = await fetch(`${API_URL}/api/v1/search/hotel/${hotelId}`)
   if (res.status === 404) return null
   if (!res.ok) throw new Error('Failed to get hotel')
-  return res.json()
+  const data = await res.json()
+  return { ...data, starRating: data.starRating ?? 0, reviews: data.reviews ?? [] }
 }
 
 export async function chatWithAgent(message: string, token: string): Promise<ChatResponse> {

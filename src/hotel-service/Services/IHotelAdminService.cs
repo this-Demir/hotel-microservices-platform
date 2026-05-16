@@ -14,5 +14,6 @@ public interface IHotelAdminService
 
     Task<RoomResponse> CreateRoomAsync(CreateRoomRequest request);
     Task<PagedResult<RoomResponse>> GetRoomsAsync(Guid hotelId, int page, int pageSize);
+    Task<IEnumerable<AvailabilityResponse>> GetAvailabilityAsync(Guid roomId);
     Task<AvailabilityResponse> SetAvailabilityAsync(SetAvailabilityRequest request);
 }

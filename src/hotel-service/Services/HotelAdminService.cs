@@ -122,6 +122,17 @@ public class HotelAdminService(
         return new PagedResult<RoomResponse>(items, page, pageSize, total);
     }
 
+    public async Task<IEnumerable<AvailabilityResponse>> GetAvailabilityAsync(Guid roomId)
+    {
+        return await db.RoomAvailabilities
+            .Where(ra => ra.RoomId == roomId)
+            .OrderBy(ra => ra.StartDate)
+            .Select(ra => new AvailabilityResponse(
+                ra.Id, ra.RoomId, ra.StartDate, ra.EndDate,
+                ra.IsVacant, ra.TotalCapacity, ra.ReservedCount))
+            .ToListAsync();
+    }
+
     public async Task<AvailabilityResponse> SetAvailabilityAsync(SetAvailabilityRequest request)
     {
         var existing = await db.RoomAvailabilities.FirstOrDefaultAsync(ra =>

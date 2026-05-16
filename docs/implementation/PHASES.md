@@ -109,18 +109,48 @@ Checklist of every step across all phases. Check off items as they are completed
 
 ## Phase 6 — Cloud Wiring & Secrets
 
-- [ ] Create Supabase project + get connection string
-- [ ] Create MongoDB Atlas cluster + get connection string
-- [ ] Create Upstash Redis instance + get URL
-- [ ] Create CloudAMQP instance + get AMQP URL
-- [ ] Create Resend account + get API key
-- [ ] Set up AWS Cognito user pool + get Authority URL
-- [ ] Set up OpenAI account + billing cap + get API key
-- [ ] Add all secrets to GitHub Actions secrets
-- [ ] Create `ocelot.Production.json` with Cloud Run / App Services downstream URLs
-- [ ] Add CORS policy to `api-gateway` for Vercel frontend origins
-- [ ] Wire CI/CD deploy steps for each service (Cloud Run or Azure App Services)
+### 6a — Credentials & Local Wiring (Done)
+- [x] Create Supabase project + get connection string (pooler URL for IPv4 compat)
+- [x] Create MongoDB Atlas cluster + get connection string
+- [x] Create Redis Cloud free instance + get connection string (switched from Upstash — no free tier)
+- [x] Create CloudAMQP instance + get AMQP URL
+- [x] Create Resend account + get API key (`onboarding@resend.dev` as from-email)
+- [x] Set up AWS Cognito user pool (`us-east-1_AhVpOfGLE`) + App Client + Authority URL
+- [x] Set up OpenAI account + get API key (billing cap recommended)
+- [x] All `appsettings.Development.json` files updated with real credentials (gitignored)
+- [x] `.env` + `.env.example` created for docker-compose
+- [x] `docker-compose.yml` rewritten — all 7 services wired with env vars
+- [x] `ocelot.Docker.json` created — docker service names (port 8080)
+- [x] `api-gateway/Program.cs` — env-specific ocelot file loading + CORS policy
+- [x] `src/client/Dockerfile` + `src/admin-client/Dockerfile` created
+- [x] `launchSettings.json` ports fixed across all services (avoid Windows Hyper-V exclusions)
+- [x] `ocelot.json` ports updated to match launchSettings (7000–7004 range)
+- [x] Redis connection string switched from `rediss://` URL to StackExchange.Redis native format
+- [x] Supabase direct host replaced with session pooler (`aws-1-ap-northeast-1.pooler.supabase.com`)
+- [x] `SearchRequest` date params made optional (defaults to today / today+1)
+- [x] `GET /api/v1/search/hotel/{hotelId}` — new public hotel detail endpoint
+- [x] `GET /api/v1/admin/availability?roomId=` — new admin availability GET endpoint
+- [x] `ocelot.json` — added `/api/v1/search/{everything}` route
+- [x] `client/lib/api.ts` — all API URLs fixed to match real backend routes
+- [x] `client/.env.local` — updated to port 7000
+- [x] `admin-client/.env.local` — created pointing to gateway port 7000
+- [x] Local demo verified: search, hotel detail, gateway routing, Redis cache, Supabase all working
+
+### 6b — Cloud Deployment (TODO)
+- [ ] Add all secrets to GitHub Actions repository secrets
+- [ ] Set up Google Cloud project + enable Cloud Run API + Artifact Registry
+- [ ] Create GCP Service Account with Cloud Run Admin + Artifact Registry Writer roles
+- [ ] Push Docker images to Google Artifact Registry (update CI workflows)
+- [ ] Deploy each service to Cloud Run — get live URLs
+- [ ] Create `ocelot.Production.json` with real Cloud Run downstream URLs
+- [ ] Add production Vercel frontend origin to CORS (`Cors:AllowedOrigins` env var)
+- [ ] Wire `gcloud run deploy` step into each GitHub Actions workflow
 - [ ] Wire CI/CD deploy step for cron-jobs Lambda (`dotnet lambda deploy-function`)
+- [ ] Register EventBridge nightly rule for Lambda cron job
+- [ ] Wire Cognito auth into `client` frontend (replace mock auth)
+- [ ] Wire Cognito auth into `admin-client` frontend (replace mock auth)
+- [ ] Fill in `SUPABASE_SERVICE_ROLE_KEY` in `.env` and appsettings.Development.json
+- [ ] Deploy frontends to Vercel + set `NEXT_PUBLIC_API_URL` to api-gateway Cloud Run URL
 
 ---
 

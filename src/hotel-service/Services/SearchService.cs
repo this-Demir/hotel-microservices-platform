@@ -12,7 +12,10 @@ public class SearchService(HotelDbContext db, IConnectionMultiplexer redis) : IS
 
     public async Task<PagedResult<SearchResultItem>> SearchAsync(SearchRequest request, bool isAuthenticated)
     {
-        var cacheKey = $"search:{request.Location}:{request.CheckIn:O}:{request.CheckOut:O}" +
+        var checkIn  = request.ResolvedCheckIn;
+        var checkOut = request.ResolvedCheckOut;
+
+        var cacheKey = $"search:{request.Location}:{checkIn:O}:{checkOut:O}" +
                        $":{request.GuestCount}:{request.Page}:{request.PageSize}:{isAuthenticated}";
 
         var cache = redis.GetDatabase();
@@ -24,8 +27,8 @@ public class SearchService(HotelDbContext db, IConnectionMultiplexer redis) : IS
             .Include(ra => ra.Room).ThenInclude(r => r.Hotel)
             .Where(ra =>
                 ra.IsVacant &&
-                ra.StartDate <= request.CheckIn &&
-                ra.EndDate >= request.CheckOut &&
+                ra.StartDate <= checkIn &&
+                ra.EndDate >= checkOut &&
                 (ra.TotalCapacity - ra.ReservedCount) >= request.GuestCount);
 
         if (!string.IsNullOrWhiteSpace(request.Location))
@@ -68,5 +71,23 @@ public class SearchService(HotelDbContext db, IConnectionMultiplexer redis) : IS
         return new RoomDetailResponse(
             room.Id, room.HotelId, room.Hotel.Name, room.Hotel.LocationPoint,
             room.Hotel.ImageUrl, room.RoomType, price);
+    }
+
+    public async Task<HotelDetailResponse?> GetHotelDetailAsync(Guid hotelId, bool isAuthenticated)
+    {
+        var hotel = await db.Hotels.FirstOrDefaultAsync(h => h.Id == hotelId);
+        if (hotel is null) return null;
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var rooms = await db.RoomAvailabilities
+            .Include(ra => ra.Room)
+            .Where(ra => ra.Room.HotelId == hotelId && ra.IsVacant && ra.EndDate >= today)
+            .Select(ra => new SearchResultItem(
+                ra.RoomId, hotelId, hotel.Name, hotel.LocationPoint, hotel.ImageUrl, ra.Room.RoomType,
+                isAuthenticated ? Math.Round(ra.Room.BasePrice * 0.85m, 2) : ra.Room.BasePrice))
+            .Distinct()
+            .ToListAsync();
+
+        return new HotelDetailResponse(hotel.Id, hotel.Name, hotel.LocationPoint, hotel.Description, hotel.ImageUrl, rooms);
     }
 }

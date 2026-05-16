@@ -13,8 +13,15 @@ public record RoomResponse(Guid Id, Guid HotelId, string RoomType, decimal BaseP
 public record SetAvailabilityRequest(Guid RoomId, DateOnly StartDate, DateOnly EndDate, bool IsVacant, int TotalCapacity);
 public record AvailabilityResponse(Guid Id, Guid RoomId, DateOnly StartDate, DateOnly EndDate, bool IsVacant, int TotalCapacity, int ReservedCount);
 
+// Hotel detail (public)
+public record HotelDetailResponse(Guid Id, string Name, string Location, string Description, string? ImageUrl, IEnumerable<SearchResultItem> Rooms);
+
 // Search
-public record SearchRequest(string? Location, DateOnly CheckIn, DateOnly CheckOut, int GuestCount, int Page = 1, int PageSize = 10);
+public record SearchRequest(string? Location, DateOnly? CheckIn, DateOnly? CheckOut, int GuestCount = 1, int Page = 1, int PageSize = 10)
+{
+    public DateOnly ResolvedCheckIn  => CheckIn  ?? DateOnly.FromDateTime(DateTime.UtcNow);
+    public DateOnly ResolvedCheckOut => CheckOut ?? DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1));
+}
 public record SearchResultItem(Guid RoomId, Guid HotelId, string HotelName, string Location, string? HotelImageUrl, string RoomType, decimal Price);
 public record RoomDetailResponse(Guid RoomId, Guid HotelId, string HotelName, string Location, string? HotelImageUrl, string RoomType, decimal Price);
 public record PagedResult<T>(IEnumerable<T> Items, int Page, int PageSize, int TotalCount);

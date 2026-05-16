@@ -57,6 +57,10 @@ public class AdminController(IHotelAdminService adminService) : ControllerBase
     public async Task<IActionResult> CreateRoom([FromBody] CreateRoomRequest request)
         => Ok(await adminService.CreateRoomAsync(request));
 
+    [HttpGet("availability")]
+    public async Task<IActionResult> GetAvailability([FromQuery] Guid roomId)
+        => Ok(await adminService.GetAvailabilityAsync(roomId));
+
     [HttpPost("availability")]
     public async Task<IActionResult> SetAvailability([FromBody] SetAvailabilityRequest request)
         => Ok(await adminService.SetAvailabilityAsync(request));

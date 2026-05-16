@@ -23,4 +23,12 @@ public class SearchController(ISearchService searchService) : ControllerBase
         var detail = await searchService.GetRoomDetailAsync(roomId, isAuthenticated);
         return detail is null ? NotFound() : Ok(detail);
     }
+
+    [HttpGet("hotel/{hotelId:guid}")]
+    public async Task<IActionResult> GetHotelDetail(Guid hotelId)
+    {
+        var isAuthenticated = User.Identity?.IsAuthenticated ?? false;
+        var detail = await searchService.GetHotelDetailAsync(hotelId, isAuthenticated);
+        return detail is null ? NotFound() : Ok(detail);
+    }
 }

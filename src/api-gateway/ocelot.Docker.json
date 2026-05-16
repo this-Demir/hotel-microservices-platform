@@ -5,7 +5,7 @@
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
       "DownstreamPathTemplate": "/api/v1/admin/{everything}",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [ { "Host": "localhost", "Port": 7001 } ],
+      "DownstreamHostAndPorts": [ { "Host": "hotel-service", "Port": 8080 } ],
       "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" }
     },
     {
@@ -13,21 +13,14 @@
       "UpstreamHttpMethod": [ "GET" ],
       "DownstreamPathTemplate": "/api/v1/search",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [ { "Host": "localhost", "Port": 7001 } ]
-    },
-    {
-      "UpstreamPathTemplate": "/api/v1/search/{everything}",
-      "UpstreamHttpMethod": [ "GET" ],
-      "DownstreamPathTemplate": "/api/v1/search/{everything}",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [ { "Host": "localhost", "Port": 7001 } ]
+      "DownstreamHostAndPorts": [ { "Host": "hotel-service", "Port": 8080 } ]
     },
     {
       "UpstreamPathTemplate": "/api/v1/bookings/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST" ],
       "DownstreamPathTemplate": "/api/v1/bookings/{everything}",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [ { "Host": "localhost", "Port": 7001 } ],
+      "DownstreamHostAndPorts": [ { "Host": "hotel-service", "Port": 8080 } ],
       "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" }
     },
     {
@@ -35,7 +28,7 @@
       "UpstreamHttpMethod": [ "GET", "PUT" ],
       "DownstreamPathTemplate": "/api/v1/notifications/{everything}",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [ { "Host": "localhost", "Port": 7001 } ],
+      "DownstreamHostAndPorts": [ { "Host": "hotel-service", "Port": 8080 } ],
       "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" }
     },
     {
@@ -43,14 +36,14 @@
       "UpstreamHttpMethod": [ "GET" ],
       "DownstreamPathTemplate": "/api/v1/comments/{everything}",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [ { "Host": "localhost", "Port": 7002 } ]
+      "DownstreamHostAndPorts": [ { "Host": "comments-service", "Port": 8080 } ]
     },
     {
       "UpstreamPathTemplate": "/api/v1/comments",
       "UpstreamHttpMethod": [ "POST" ],
       "DownstreamPathTemplate": "/api/v1/comments",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [ { "Host": "localhost", "Port": 7002 } ],
+      "DownstreamHostAndPorts": [ { "Host": "comments-service", "Port": 8080 } ],
       "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" }
     },
     {
@@ -58,12 +51,11 @@
       "UpstreamHttpMethod": [ "POST" ],
       "DownstreamPathTemplate": "/api/v1/agent/{everything}",
       "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [ { "Host": "localhost", "Port": 7003 } ],
+      "DownstreamHostAndPorts": [ { "Host": "ai-agent-service", "Port": 8080 } ],
       "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" }
     }
   ],
   "GlobalConfiguration": {
-    "BaseUrl": "http://localhost:7000"
+    "BaseUrl": "http://localhost:5000"
   }
 }
-
