@@ -2,7 +2,7 @@ name: api-gateway CI/CD
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - "src/api-gateway/**"
 

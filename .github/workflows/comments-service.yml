@@ -2,7 +2,7 @@ name: comments-service CI/CD
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - "src/comments-service/**"
 

@@ -2,7 +2,7 @@ name: ai-agent-service CI/CD
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - "src/ai-agent-service/**"
 
