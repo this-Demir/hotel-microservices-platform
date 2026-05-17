@@ -6,14 +6,23 @@ on:
     paths:
       - "src/hotel-service/**"
       - "src/hotel-service-tests/**"
+      - ".github/workflows/hotel-service.yml"
+  workflow_dispatch:
   pull_request:
     paths:
       - "src/hotel-service/**"
       - "src/hotel-service-tests/**"
 
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}/hotel-service
+  ACA_APP: hotel-service
+  ACA_RG: rg-hotelbooking-prod
 
 jobs:
   test:
@@ -35,11 +44,8 @@ jobs:
 
   build-and-push:
     needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
 
     steps:
       - uses: actions/checkout@v4
@@ -59,6 +65,28 @@ jobs:
         with:
           context: ./src/hotel-service
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build-and-push
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to Container Apps
+        run: |
+          az containerapp update \
+            --name ${{ env.ACA_APP }} \
+            --resource-group ${{ env.ACA_RG }} \
+            --image ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}

@@ -1,4 +1,4 @@
-name: ai-agent-service CI
+name: ai-agent-service CI/CD
 
 on:
   push:
@@ -6,10 +6,23 @@ on:
     paths:
       - "src/ai-agent-service/**"
       - "src/ai-agent-service-tests/**"
+      - ".github/workflows/ai-agent-service.yml"
+  workflow_dispatch:
   pull_request:
     paths:
       - "src/ai-agent-service/**"
       - "src/ai-agent-service-tests/**"
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/ai-agent-service
+  ACA_APP: ai-agent-service
+  ACA_RG: rg-hotelbooking-prod
 
 jobs:
   test:
@@ -28,3 +41,52 @@ jobs:
 
       - name: Test
         run: dotnet test src/ai-agent-service-tests/ai-agent-service-tests.csproj --no-restore --logger "console;verbosity=minimal"
+
+  build-and-push:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./src/ai-agent-service
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build-and-push
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to Container Apps
+        run: |
+          az containerapp update \
+            --name ${{ env.ACA_APP }} \
+            --resource-group ${{ env.ACA_RG }} \
+            --image ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
