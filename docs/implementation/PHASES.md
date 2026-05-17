@@ -136,21 +136,25 @@ Checklist of every step across all phases. Check off items as they are completed
 - [x] `admin-client/.env.local` — created pointing to gateway port 7000
 - [x] Local demo verified: search, hotel detail, gateway routing, Redis cache, Supabase all working
 
-### 6b — Cloud Deployment (TODO)
-- [ ] Add all secrets to GitHub Actions repository secrets
-- [ ] Set up Google Cloud project + enable Cloud Run API + Artifact Registry
-- [ ] Create GCP Service Account with Cloud Run Admin + Artifact Registry Writer roles
-- [ ] Push Docker images to Google Artifact Registry (update CI workflows)
-- [ ] Deploy each service to Cloud Run — get live URLs
-- [ ] Create `ocelot.Production.json` with real Cloud Run downstream URLs
-- [ ] Add production Vercel frontend origin to CORS (`Cors:AllowedOrigins` env var)
-- [ ] Wire `gcloud run deploy` step into each GitHub Actions workflow
-- [ ] Wire CI/CD deploy step for cron-jobs Lambda (`dotnet lambda deploy-function`)
+### 6b — Cloud Deployment (Done — Azure Container Apps)
+
+Platform switched from Google Cloud Run → **Azure Container Apps** (Consumption plan, Germany West Central).
+
+- [x] Create Azure resource group `rg-hotelbooking-prod` + Container Apps Environment `cae-hotelbooking`
+- [x] Set up OIDC federation (no stored credentials) — service principal `5403a930-d7a2-4c0c-a3d4-3a27b57c9699`
+- [x] Set GitHub secrets: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`
+- [x] Push Docker images to GHCR (private); ACA pulls via registry credential (PAT `read:packages`)
+- [x] Deploy all 5 services to ACA — api-gateway public, 4 services internal-only
+- [x] Create `ocelot.Production.json` with ACA internal FQDNs (`*.internal.ashycoast-db26d23e.germanywestcentral.azurecontainerapps.io`)
+- [x] Set all runtime secrets in ACA secret store (`secretref:`) — never in git or GitHub secrets
+- [x] Wire `az containerapp update --image` deploy step into all 5 GitHub Actions workflows
+- [x] End-to-end verified: `GET /health` → 200, `GET /api/v1/search` → real Supabase data
+- [x] Wire CI/CD deploy step for cron-jobs Lambda (`dotnet lambda deploy-function`)
 - [ ] Register EventBridge nightly rule for Lambda cron job
+- [ ] Deploy frontends to Vercel + set `NEXT_PUBLIC_API_URL` to api-gateway ACA URL
+- [ ] Update gateway CORS: `Cors__AllowedOrigins` with both Vercel production URLs
 - [ ] Wire Cognito auth into `client` frontend (replace mock auth)
 - [ ] Wire Cognito auth into `admin-client` frontend (replace mock auth)
-- [ ] Fill in `SUPABASE_SERVICE_ROLE_KEY` in `.env` and appsettings.Development.json
-- [ ] Deploy frontends to Vercel + set `NEXT_PUBLIC_API_URL` to api-gateway Cloud Run URL
 
 ---
 
