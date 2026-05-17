@@ -149,10 +149,11 @@ Platform switched from Google Cloud Run → **Azure Container Apps** (Consumptio
 - [x] Set all runtime secrets in ACA secret store (`secretref:`) — never in git or GitHub secrets
 - [x] Wire `az containerapp update --image` deploy step into all 5 GitHub Actions workflows
 - [x] End-to-end verified: `GET /health` → 200, `GET /api/v1/search` → real Supabase data
+- [x] Add per-route rate limiting to `ocelot.Production.json` — protect OpenAI, booking, admin writes, comments
 - [x] Wire CI/CD deploy step for cron-jobs Lambda (`dotnet lambda deploy-function`)
 - [ ] Register EventBridge nightly rule for Lambda cron job
 - [ ] Deploy frontends to Vercel + set `NEXT_PUBLIC_API_URL` to api-gateway ACA URL
-- [ ] Update gateway CORS: `Cors__AllowedOrigins` with both Vercel production URLs
+- [x] Update gateway CORS: `Cors__AllowedOrigins` with both Vercel production URLs
 - [ ] Wire Cognito auth into `client` frontend (replace mock auth)
 - [ ] Wire Cognito auth into `admin-client` frontend (replace mock auth)
 

@@ -22,7 +22,7 @@ This system follows a Microservices Architecture pattern. All client requests ar
 ## 3. Services
 | Service | Responsibility |
 |---|---|
-| `api-gateway` | Ocelot reverse proxy, JWT validation, route all traffic |
+| `api-gateway` | Ocelot reverse proxy, JWT validation, per-route rate limiting, route all traffic |
 | `hotel-service` | Hotel Admin CRUD, Search, Booking |
 | `comments-service` | Ratings & comments (MongoDB only) |
 | `notification-service` | RabbitMQ consumer, email via Resend, in-app via Supabase |
@@ -31,7 +31,7 @@ This system follows a Microservices Architecture pattern. All client requests ar
 | `frontend-client` | Next.js/React UI on Vercel |
 
 ## 4. Communication Flow
-- **Synchronous:** Client -> Ocelot Gateway -> Specific Microservice (REST)
+- **Synchronous:** Client -> Ocelot Gateway (JWT validation + rate limiting) -> Specific Microservice (REST)
 - **Asynchronous:** Hotel Service -> RabbitMQ (fire and forget) -> Notification Service
 - **AI Agent:** Frontend -> AI Agent Service -> OpenAI (tool calling) -> Hotel Service APIs
 

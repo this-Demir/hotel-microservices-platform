@@ -1,6 +1,6 @@
 # Project Status & Remaining Work
 
-Last updated: 17.05.2026
+Last updated: 18.05.2026
 For code-level TODO details (snippets, file paths, step-by-step): `TODO_ADMIN_AND_DEPLOY.md`.
 
 ---
@@ -28,11 +28,33 @@ Every service passed CI (tests green) and CD (OIDC deploy to ACA).
 Auth via OIDC federation — no stored Azure credentials anywhere.
 Path-filtered — only the changed service's workflow runs.
 
-### Frontends — built, not deployed
+### API Gateway — rate limiting active
 
-Both `src/client` and `src/admin-client` build successfully and are feature-complete UI-wise.
-They have never been deployed to Vercel. `NEXT_PUBLIC_API_URL` is unset.
-Currently running on **mock data only** — no live backend calls are made.
+Per-route rate limits applied in `ocelot.Production.json` to protect free-tier quotas:
+
+| Route | Methods | Limit | Reason |
+|---|---|---|---|
+| `/api/v1/agent/**` | POST | 5 / min | Each call hits OpenAI — costs real money |
+| `/api/v1/bookings/**` | POST | 5 / min | Prevents reservation spam + RabbitMQ/email abuse |
+| `/api/v1/admin/**` | POST, PUT, DELETE | 20 / min | Admin write protection |
+| `/api/v1/admin/**` | GET | 60 / min | Admin browsing; blocks runaway scripts |
+| `/api/v1/comments` | POST | 10 / min | Anti-spam for MongoDB Atlas free tier |
+| Search + all read routes | GET | no limit | Redis-cached / cheap; free browsing for evaluators |
+
+Client identity: `Authorization` header — limits are per-user JWT.
+Rate limit headers returned on every response (`X-Rate-Limit-*`). Exceeding returns `429`.
+Limits are in-memory (Ocelot built-in); reset on cold start — acceptable for student demo.
+
+### Frontends — live on Vercel (Frankfurt)
+
+| App | URL |
+|---|---|
+| User client | `https://hotel-client-gold.vercel.app` |
+| Admin client | `https://hotel-admin-client.vercel.app` |
+
+Both deployed with `vercel.json` (security headers, fra1 region), `robots.ts`, `manifest.ts`.
+`NEXT_PUBLIC_API_URL` set to the Azure gateway. Search verified with real Supabase data.
+CORS updated on api-gateway to allow both Vercel origins.
 
 ---
 
