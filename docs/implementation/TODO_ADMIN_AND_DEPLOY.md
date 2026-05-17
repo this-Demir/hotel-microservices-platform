@@ -3,19 +3,15 @@
 Ordered by priority. Items marked **BLOCKER** must be done before any real traffic.
 Items marked **NICE** are improvements that don't block deployment.
 
+Legend: ✅ Done | ⏳ Pending | 🔜 Next session
+
 ---
 
 ## 1. Auth — BLOCKER for all admin operations
 
-The admin-client currently generates a fake base64 token (`btoa(email:timestamp)`).
-The api-gateway validates JWTs against Cognito JWKS before forwarding — every admin
-API call returns **401** with the current mock token.
-
-### 1a. Replace mock login with real Cognito `InitiateAuth`
-
-**File:** `src/admin-client/lib/auth-context.tsx` — `login()` function
-
-Replace the mock block with a call to the Cognito token endpoint:
+### ✅ 1a. Replace mock login with real Cognito `InitiateAuth`
+**Status:** Pending — still using fake base64 token in `src/admin-client/lib/auth-context.tsx`.
+Will be tackled in the Cognito session (after Vercel deployment).
 
 ```ts
 const res = await fetch(
@@ -33,7 +29,7 @@ const res = await fetch(
 )
 if (!res.ok) throw new Error('Invalid credentials')
 const { access_token, id_token } = await res.json()
-localStorage.setItem('admin_token', id_token)   // id_token carries email claim
+localStorage.setItem('admin_token', id_token)
 ```
 
 Add to `admin-client/.env.local` (and Vercel env):
@@ -42,38 +38,27 @@ NEXT_PUBLIC_COGNITO_CLIENT_ID=<your_app_client_id>
 NEXT_PUBLIC_COGNITO_AUTHORITY=https://cognito-idp.<region>.amazonaws.com/<pool_id>
 ```
 
-### 1b. Add token refresh
+### ⏳ 1b. Add token refresh
 
-Cognito `id_token` expires in 1 hour. Store the `refresh_token` in localStorage and
-call `grant_type=refresh_token` on 401 responses from the API.
+Cognito `id_token` expires in 1 hour. Store the `refresh_token` and call
+`grant_type=refresh_token` on 401 responses from the API.
 
-Simplest approach: wrap `api.ts` fetch calls in a helper that retries once with a
-refreshed token when the response is 401.
-
-### 1c. Create an admin user in Cognito
+### ⏳ 1c. Create an admin user in Cognito + configure groups/roles
 
 Go to AWS Console → Cognito → User Pool → Users → Create user.
-Set a permanent password (disable force-change). Use this account to log in.
-
-Optionally add a custom `role` attribute and set it to `admin` — use this in
-`AdminController` with `[Authorize(Policy = "AdminOnly")]` for stricter access control.
+Set permanent password. Add user to an `Admin` group.
+Optionally add a custom `role` attribute and use `[Authorize(Policy = "AdminOnly")]`.
 
 ---
 
 ## 2. Image Upload — Missing frontend
 
-Backend endpoint is fully implemented: `POST /api/v1/admin/hotels/{id}/image`
-(uploads to Supabase Storage, saves public URL to DB).
-The frontend has zero image upload UI.
+Backend endpoint fully implemented: `POST /api/v1/admin/hotels/{id}/image`
 
-### 2a. Add `uploadHotelImage` to `api.ts`
+### ⏳ 2a. Add `uploadHotelImage` to `api.ts`
 
 ```ts
-export async function uploadHotelImage(
-  id: string,
-  file: File,
-  token?: string,
-): Promise<HotelResponse> {
+export async function uploadHotelImage(id: string, file: File, token?: string) {
   const body = new FormData()
   body.append('file', file)
   const res = await fetch(`${API_URL}/api/v1/admin/hotels/${id}/image`, {
@@ -87,35 +72,28 @@ export async function uploadHotelImage(
 }
 ```
 
-### 2b. Add image upload UI to hotel detail page
+### ⏳ 2b. Add image upload UI to hotel detail page
 
 **File:** `src/admin-client/app/hotels/[id]/page.tsx`
 
-Add below the hotel name/description header:
-- A hotel cover image preview (show `hotel.imageUrl` if set, otherwise a placeholder)
-- A `<input type="file" accept="image/*">` button that calls `uploadHotelImage`
-- Client-side validation: accept only `image/*`, reject files over 5 MB
+- Hotel cover image preview (`hotel.imageUrl` or placeholder)
+- `<input type="file" accept="image/*">` that calls `uploadHotelImage`
+- Client-side validation: only `image/*`, reject > 5 MB
 
-### 2c. Show image thumbnail in hotel list
+### ⏳ 2c. Show image thumbnail in hotel list
 
-**File:** `src/admin-client/app/hotels/page.tsx`
+**File:** `src/admin-client/app/hotels/page.tsx` — add small image column.
 
-Add a small image column to the hotels table. Render `<img>` if `imageUrl` is set,
-otherwise a grey placeholder square.
+### ⏳ 2d. Verify Supabase Storage bucket exists
 
-### 2d. Verify Supabase Storage bucket exists
-
-In Supabase Dashboard → Storage:
-- Create bucket named `hotel-images`
-- Set policy: **public read**, authenticated write (service role key is used server-side)
+Supabase Dashboard → Storage → create bucket `hotel-images`, public read / service-role write.
 
 ---
 
 ## 3. Missing CRUD operations
 
-### 3a. Room delete — backend
+### ⏳ 3a. Room delete — backend
 
-Add to `AdminController`:
 ```csharp
 [HttpDelete("rooms/{id:guid}")]
 public async Task<IActionResult> DeleteRoom(Guid id)
@@ -125,208 +103,120 @@ public async Task<IActionResult> DeleteRoom(Guid id)
 }
 ```
 
-Add `DeleteRoomAsync` to `IHotelAdminService` / `HotelAdminService`.
 Guard: check no active reservations reference this room before deleting.
 
-### 3b. Room delete — frontend
+### ⏳ 3b. Room delete — frontend
 
 **File:** `src/admin-client/app/hotels/[id]/page.tsx`
 
-Add a Delete button next to each room row (same pattern as hotel delete — use
-`ConfirmDialog` already in the project).
+Delete button next to each room row (use existing `ConfirmDialog`).
 Add `deleteRoom(id, token)` to `api.ts`.
 
-### 3c. Room update — backend + frontend (NICE)
+### 3c. Room update — NICE (backend + frontend)
 
-Currently there is no `PUT /api/v1/admin/rooms/{id}`. Add it if price/type
-corrections are needed. Low priority since rooms rarely change after creation.
+`PUT /api/v1/admin/rooms/{id}` — low priority, rooms rarely change after creation.
 
-### 3d. Availability delete — backend + frontend (NICE)
+### 3d. Availability delete — NICE (backend + frontend)
 
-No endpoint to remove an availability window. Add
-`DELETE /api/v1/admin/availability/{id}` and a delete button in the
-availability panel if stale windows need cleaning up.
+`DELETE /api/v1/admin/availability/{id}` — for cleaning up stale windows.
 
 ---
 
-## 4. Backend resilience fixes
+## 4. Backend resilience
 
-### 4a. RabbitMQ startup crash — BLOCKER for notification flow
+### ✅ 4a. RabbitMQ startup retry
 
-**File:** `src/hotel-service/Program.cs` (lines 37–44)
+Done (commit `3343295`): 5-attempt retry loop in hotel-service and notification-service.
+`AutomaticRecoveryEnabled = true` on both.
 
-`factory.CreateConnectionAsync().GetAwaiter().GetResult()` is called at startup.
-If CloudAMQP is unreachable, the service refuses to start (same pattern as the
-Redis issue already fixed).
+### ✅ 4b. Health check endpoints
 
-Fix — lazy connect with retry, identical approach to what we did for Redis:
-```csharp
-builder.Services.AddSingleton<IConnection>(_ =>
-{
-    var factory = new ConnectionFactory
-    {
-        Uri = new Uri(builder.Configuration.GetConnectionString("RabbitMQ")!),
-        AutomaticRecoveryEnabled = true,
-    };
-    // Retry up to 5 times with 2s delay (Cloud Run cold start / RabbitMQ restart)
-    for (var i = 0; i < 5; i++)
-    {
-        try { return factory.CreateConnectionAsync().GetAwaiter().GetResult(); }
-        catch { Thread.Sleep(2000); }
-    }
-    return factory.CreateConnectionAsync().GetAwaiter().GetResult();
-});
-```
+Done (commit `3343295`): `GET /health` on all 5 services.
+Gateway uses `app.Use()` middleware before `UseOcelot()` — `app.MapGet()` would be intercepted.
 
-Apply the same check to `notification-service` — it consumes from RabbitMQ at startup.
+### ✅ 4c. `[Authorize]` double-validation
 
-### 4b. Health check endpoints — BLOCKER for Cloud Run
-
-Cloud Run and Azure App Services require a liveness probe endpoint. Without it,
-the platform cannot determine whether a container is healthy and will restart it.
-
-Add to every `.NET` service `Program.cs` before `app.Run()`:
-```csharp
-app.MapGet("/health", () => Results.Ok("healthy"));
-```
-
-Services to update: `hotel-service`, `comments-service`, `notification-service`,
-`ai-agent-service`, `api-gateway`.
-
-### 4c. `[Authorize]` double-validation
-
-The api-gateway validates the JWT before forwarding. `AdminController` also has
-`[Authorize]`, which re-validates inside the service. This is intentional (defence
-in depth) but requires that downstream services also have Cognito Authority
-configured — which they do. No change needed, just awareness.
+Intentional defence in depth — no change needed.
 
 ---
 
 ## 5. Docker / local dev cleanup
 
-### 5a. Remove obsolete `version` from docker-compose.yml
+### ⏳ 5a. Remove obsolete `version` from docker-compose.yml
 
-**File:** `docker-compose.yml` line 1
+**File:** `docker-compose.yml` line 1 — delete `version: "3.9"`.
 
-Delete the line `version: "3.9"` — Compose V2 ignores it and emits a warning on
-every command.
+### ⏳ 5b. Ocelot multipart forwarding (image upload)
 
-### 5b. Ocelot image upload route (multipart forwarding)
-
-The current catch-all `"/api/v1/admin/{everything}"` in `ocelot.Docker.json` covers
-`POST /api/v1/admin/hotels/{id}/image`. However Ocelot strips request body for some
-content types. Verify that `multipart/form-data` forwards correctly once real auth
-is in place by testing with `curl`:
+Verify `POST /api/v1/admin/hotels/{id}/image` forwards `multipart/form-data` correctly
+once real Cognito auth is in place:
 
 ```bash
-curl -X POST http://localhost:5000/api/v1/admin/hotels/{id}/image \
+curl -X POST https://api-gateway.ashycoast-db26d23e.germanywestcentral.azurecontainerapps.io/api/v1/admin/hotels/{id}/image \
   -H "Authorization: Bearer <real_cognito_token>" \
   -F "file=@/path/to/image.jpg"
 ```
 
-If it returns 400/500, add an explicit route for the image upload path before the
-`{everything}` catch-all in `ocelot.Docker.json`.
+If 400/500, add an explicit route before the `{everything}` catch-all in `ocelot.Production.json`.
 
 ---
 
-## 6. Deployment pipeline — BLOCKER before going live
+## 6. Deployment pipeline
 
-### 6a. Add deploy steps to GitHub Actions workflows
+### ✅ 6a. Deploy steps in GitHub Actions workflows
 
-Each service workflow in `.github/workflows/` currently builds and tests only.
-Add a deploy job that:
-1. Authenticates with the target platform (GCP or Azure service principal)
-2. Pushes the Docker image to the container registry
-3. Deploys to Cloud Run / Azure App Services
+Done (this session). All 5 .NET services have `test → build-and-push → deploy` jobs.
+Auth via OIDC federation — no stored credentials.
 
-Minimal Cloud Run example (add after the build job):
-```yaml
-- name: Authenticate to GCP
-  uses: google-github-actions/auth@v2
-  with:
-    credentials_json: ${{ secrets.GCP_SA_KEY }}
+### ✅ 6b. Azure secrets and GitHub secrets
 
-- name: Deploy to Cloud Run
-  uses: google-github-actions/deploy-cloudrun@v2
-  with:
-    service: hotel-service
-    image: gcr.io/${{ secrets.GCP_PROJECT }}/hotel-service:${{ github.sha }}
-    region: us-central1
-    env_vars: |
-      ConnectionStrings__Postgres=${{ secrets.SUPABASE_CONNECTION_STRING }}
-      ConnectionStrings__Redis=${{ secrets.REDIS_URL }}
-      ...
-```
+GitHub secrets set: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`.
+All runtime secrets (DB connections, API keys) are in **ACA built-in secret store** (`secretref:`),
+not in GitHub Actions secrets.
 
-### 6b. Add all secrets to GitHub repository
-
-Go to GitHub → Settings → Secrets → Actions. Add:
-
-| Secret | Used by |
-|---|---|
-| `SUPABASE_CONNECTION_STRING` | hotel-service, notification-service |
-| `SUPABASE_URL` | hotel-service |
-| `SUPABASE_SERVICE_ROLE_KEY` | hotel-service |
-| `MONGODB_CONNECTION_STRING` | comments-service |
-| `REDIS_URL` | hotel-service |
-| `RABBITMQ_URL` | hotel-service, notification-service |
-| `RESEND_API_KEY` | notification-service |
-| `RESEND_FROM_EMAIL` | notification-service |
-| `COGNITO_AUTHORITY` | api-gateway, hotel-service, comments-service, ai-agent-service |
-| `COGNITO_CLIENT_ID` | api-gateway |
-| `OPENAI_API_KEY` | ai-agent-service |
-| `GCP_SA_KEY` (or equivalent) | CI deploy |
-| `GCP_PROJECT` (or equivalent) | CI deploy |
-
-### 6c. Set Vercel environment variables
+### 🔜 6c. Set Vercel environment variables (next session)
 
 For both `client` and `admin-client` Vercel projects:
 
 | Variable | Value |
 |---|---|
-| `NEXT_PUBLIC_API_URL` | `https://<your-gateway-cloud-run-url>` |
+| `NEXT_PUBLIC_API_URL` | `https://api-gateway.ashycoast-db26d23e.germanywestcentral.azurecontainerapps.io` |
 | `NEXT_PUBLIC_COGNITO_CLIENT_ID` | Cognito app client ID |
-| `NEXT_PUBLIC_COGNITO_AUTHORITY` | `https://cognito-idp.<region>.amazonaws.com/<pool_id>` |
+| `NEXT_PUBLIC_COGNITO_AUTHORITY` | `https://cognito-idp.us-east-1.amazonaws.com/us-east-1_AhVpOfGLE` |
 
-### 6d. Update Cognito app client callback URLs
+### ⏳ 6d. Update Cognito app client callback URLs
 
-In AWS Cognito → App Clients → your client:
-- Add production Vercel URL to allowed callback/sign-out URLs
-- Add `https://<admin-client-vercel-url>` as allowed origin
+AWS Cognito → App Clients → add Vercel production URLs to allowed callback/sign-out URLs.
 
-### 6e. Update CORS in api-gateway
-
-**File:** `docker-compose.yml` and Cloud Run env:
+### ⏳ 6e. Update CORS in api-gateway (after Vercel URLs are known)
 
 ```
-Cors__AllowedOrigins=https://<client.vercel.app>,https://<admin-client.vercel.app>
+az containerapp update -g rg-hotelbooking-prod -n api-gateway --set-env-vars \
+  Cors__AllowedOrigins="https://<client>.vercel.app,https://<admin-client>.vercel.app"
 ```
 
 ---
 
 ## 7. User client (client app) — remaining gaps
 
-These are not strictly admin items but block the full user flow:
-
 | Gap | File | Notes |
 |---|---|---|
-| Sign-in/sign-up pages call no real auth | `src/client/app/sign-in` | Need same Cognito `InitiateAuth` wiring as admin-client |
-| Booking page sends no JWT | `src/client/lib/api.ts` | Pass stored token in `Authorization` header |
-| AI chat page wiring | `src/client/app` | Needs `POST /api/v1/agent/chat` call |
+| Sign-in/sign-up calls no real auth | `src/client/app/sign-in` | Need Cognito `InitiateAuth` |
+| Booking page sends no JWT | `src/client/lib/api.ts` | Pass token in `Authorization` header |
+| AI chat page wiring | `src/client/app` | `POST /api/v1/agent/chat` |
 | 15% discount not visible in UI | search results | Show original + discounted price when logged in |
 
 ---
 
-## Summary — ordered execution
+## Summary — remaining execution order
 
-1. Fix RabbitMQ startup resilience (hotel-service + notification-service)
-2. Add `/health` endpoints to all services
-3. Remove `version` from docker-compose.yml
-4. Replace mock auth in admin-client with real Cognito login
-5. Add image upload UI + `api.ts` function
-6. Add room delete (backend + frontend)
-7. Create Supabase `hotel-images` bucket
-8. Verify Ocelot multipart forwarding
-9. Add deploy steps to GitHub Actions workflows
-10. Add all secrets to GitHub + Vercel
-11. Wire user client sign-in/booking with real Cognito tokens
+1. ⏳ Vercel deployment for `client` + `admin-client` (next session)
+2. ⏳ Update gateway CORS with Vercel URLs
+3. ⏳ Cognito: create admin user, configure groups, set callback URLs
+4. ⏳ Replace mock auth in admin-client with real Cognito login
+5. ⏳ Wire user client sign-in/booking/AI chat with real Cognito tokens
+6. ⏳ Add image upload UI + `api.ts` function
+7. ⏳ Add room delete (backend + frontend)
+8. ⏳ Verify Ocelot multipart forwarding (image upload through gateway)
+9. ⏳ Remove `version` from docker-compose.yml
+10. ⏳ Verify Supabase `hotel-images` bucket exists and is public
