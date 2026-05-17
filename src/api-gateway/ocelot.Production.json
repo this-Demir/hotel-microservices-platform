@@ -1,0 +1,68 @@
+{
+  "Routes": [
+    {
+      "UpstreamPathTemplate": "/api/v1/admin/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "DownstreamPathTemplate": "/api/v1/admin/{everything}",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [ { "Host": "hotel-service.internal.ashycoast-db26d23e.germanywestcentral.azurecontainerapps.io", "Port": 443 } ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/search",
+      "UpstreamHttpMethod": [ "GET" ],
+      "DownstreamPathTemplate": "/api/v1/search",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [ { "Host": "hotel-service.internal.ashycoast-db26d23e.germanywestcentral.azurecontainerapps.io", "Port": 443 } ]
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/search/{everything}",
+      "UpstreamHttpMethod": [ "GET" ],
+      "DownstreamPathTemplate": "/api/v1/search/{everything}",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [ { "Host": "hotel-service.internal.ashycoast-db26d23e.germanywestcentral.azurecontainerapps.io", "Port": 443 } ]
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/bookings/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST" ],
+      "DownstreamPathTemplate": "/api/v1/bookings/{everything}",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [ { "Host": "hotel-service.internal.ashycoast-db26d23e.germanywestcentral.azurecontainerapps.io", "Port": 443 } ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/notifications/{everything}",
+      "UpstreamHttpMethod": [ "GET", "PUT" ],
+      "DownstreamPathTemplate": "/api/v1/notifications/{everything}",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [ { "Host": "hotel-service.internal.ashycoast-db26d23e.germanywestcentral.azurecontainerapps.io", "Port": 443 } ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/comments/{everything}",
+      "UpstreamHttpMethod": [ "GET" ],
+      "DownstreamPathTemplate": "/api/v1/comments/{everything}",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [ { "Host": "comments-service.internal.ashycoast-db26d23e.germanywestcentral.azurecontainerapps.io", "Port": 443 } ]
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/comments",
+      "UpstreamHttpMethod": [ "POST" ],
+      "DownstreamPathTemplate": "/api/v1/comments",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [ { "Host": "comments-service.internal.ashycoast-db26d23e.germanywestcentral.azurecontainerapps.io", "Port": 443 } ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" }
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/agent/{everything}",
+      "UpstreamHttpMethod": [ "POST" ],
+      "DownstreamPathTemplate": "/api/v1/agent/{everything}",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [ { "Host": "ai-agent-service.internal.ashycoast-db26d23e.germanywestcentral.azurecontainerapps.io", "Port": 443 } ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" }
+    }
+  ],
+  "GlobalConfiguration": {
+    "BaseUrl": "https://api-gateway.ashycoast-db26d23e.germanywestcentral.azurecontainerapps.io"
+  }
+}
