@@ -41,6 +41,18 @@ app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Ocelot intercepts all requests, so /health must be handled as middleware before UseOcelot
+app.Use(async (ctx, next) =>
+{
+    if (ctx.Request.Path == "/health")
+    {
+        ctx.Response.StatusCode = 200;
+        await ctx.Response.WriteAsync("healthy");
+        return;
+    }
+    await next();
+});
+
 await app.UseOcelot();
 
 app.Run();

@@ -45,13 +45,19 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
     return ConnectionMultiplexer.Connect(opts);
 });
 
-// CloudAMQP RabbitMQ
+// CloudAMQP RabbitMQ — retry on startup so Cloud Run cold-starts survive transient RabbitMQ unavailability
 builder.Services.AddSingleton<IConnection>(_ =>
 {
     var factory = new ConnectionFactory
     {
-        Uri = new Uri(builder.Configuration.GetConnectionString("RabbitMQ")!)
+        Uri = new Uri(builder.Configuration.GetConnectionString("RabbitMQ")!),
+        AutomaticRecoveryEnabled = true,
     };
+    for (var i = 0; i < 5; i++)
+    {
+        try { return factory.CreateConnectionAsync().GetAwaiter().GetResult(); }
+        catch { Thread.Sleep(2000); }
+    }
     return factory.CreateConnectionAsync().GetAwaiter().GetResult();
 });
 
@@ -69,5 +75,6 @@ if (app.Environment.IsDevelopment())
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapGet("/health", () => Results.Ok("healthy"));
 
 app.Run();
