@@ -13,16 +13,23 @@ const LogoIcon = ({ className }: { className?: string }) => (
 export default function SignInPage() {
   const { login } = useAuth()
   const router = useRouter()
-  const [email, setEmail] = useState('alex@example.com')
-  const [password, setPassword] = useState('demo1234')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    await new Promise((r) => setTimeout(r, 600))
-    login({ email })
-    router.push('/')
+    setError('')
+    try {
+      await login(email, password)
+      router.push('/')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -103,6 +110,9 @@ export default function SignInPage() {
                 className="w-full mt-1 px-4 py-3 border border-slate-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none text-sm"
               />
             </label>
+            {error && (
+              <div className="text-sm text-red-600 bg-red-50 ring-1 ring-red-100 rounded-xl px-3 py-2">{error}</div>
+            )}
             <button
               type="submit"
               disabled={loading}

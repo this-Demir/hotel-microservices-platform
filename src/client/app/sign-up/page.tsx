@@ -11,24 +11,46 @@ const LogoIcon = ({ className }: { className?: string }) => (
 )
 
 export default function SignUpPage() {
-  const { login } = useAuth()
+  const { signUp, confirmSignUp, login } = useAuth()
   const router = useRouter()
+  const [stage, setStage] = useState<'register' | 'confirm'>('register')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
+  const [code, setCode] = useState('')
   const [err, setErr] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     if (password !== confirm) { setErr('Passwords do not match.'); return }
     if (!name.trim()) { setErr('Please enter your name.'); return }
     setErr('')
     setLoading(true)
-    await new Promise((r) => setTimeout(r, 700))
-    login({ name: name.trim(), email })
-    router.push('/')
+    try {
+      await signUp(name.trim(), email, password)
+      setStage('confirm')
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Sign-up failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleConfirm = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setErr('')
+    setLoading(true)
+    try {
+      await confirmSignUp(email, code)
+      await login(email, password)
+      router.push('/')
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Confirmation failed')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -85,69 +107,116 @@ export default function SignUpPage() {
             StayEase
           </button>
 
-          <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Create your account</h2>
-          <p className="text-slate-500 mt-2">Takes 30 seconds. No card required.</p>
+          {stage === 'register' ? (
+            <>
+              <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Create your account</h2>
+              <p className="text-slate-500 mt-2">Takes 30 seconds. No card required.</p>
 
-          <form onSubmit={handleSubmit} className="mt-8 space-y-4">
-            <label className="block">
-              <span className="text-xs font-semibold text-slate-700">Full name</span>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full mt-1 px-4 py-3 border border-slate-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none text-sm"
-                placeholder="Alex Johnson"
-              />
-            </label>
-            <label className="block">
-              <span className="text-xs font-semibold text-slate-700">Email</span>
-              <input
-                required
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full mt-1 px-4 py-3 border border-slate-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none text-sm"
-              />
-            </label>
-            <label className="block">
-              <span className="text-xs font-semibold text-slate-700">Password</span>
-              <input
-                required
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full mt-1 px-4 py-3 border border-slate-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none text-sm"
-              />
-            </label>
-            <label className="block">
-              <span className="text-xs font-semibold text-slate-700">Confirm password</span>
-              <input
-                required
-                type="password"
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                className="w-full mt-1 px-4 py-3 border border-slate-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none text-sm"
-              />
-            </label>
-            {err && (
-              <div className="text-sm text-red-600 bg-red-50 ring-1 ring-red-100 rounded-xl px-3 py-2">{err}</div>
-            )}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-70 text-white font-semibold py-3.5 rounded-full transition shadow-md flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Creating account…</>
-              ) : 'Create account'}
-            </button>
-          </form>
+              <form onSubmit={handleRegister} className="mt-8 space-y-4">
+                <label className="block">
+                  <span className="text-xs font-semibold text-slate-700">Full name</span>
+                  <input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full mt-1 px-4 py-3 border border-slate-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none text-sm"
+                    placeholder="Alex Johnson"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-xs font-semibold text-slate-700">Email</span>
+                  <input
+                    required
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full mt-1 px-4 py-3 border border-slate-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none text-sm"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-xs font-semibold text-slate-700">Password</span>
+                  <input
+                    required
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full mt-1 px-4 py-3 border border-slate-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none text-sm"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-xs font-semibold text-slate-700">Confirm password</span>
+                  <input
+                    required
+                    type="password"
+                    value={confirm}
+                    onChange={(e) => setConfirm(e.target.value)}
+                    className="w-full mt-1 px-4 py-3 border border-slate-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none text-sm"
+                  />
+                </label>
+                {err && (
+                  <div className="text-sm text-red-600 bg-red-50 ring-1 ring-red-100 rounded-xl px-3 py-2">{err}</div>
+                )}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-70 text-white font-semibold py-3.5 rounded-full transition shadow-md flex items-center justify-center gap-2"
+                >
+                  {loading ? (
+                    <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Creating account…</>
+                  ) : 'Create account'}
+                </button>
+              </form>
 
-          <div className="mt-6 text-sm text-slate-500 text-center">
-            Already have an account?{' '}
-            <button onClick={() => router.push('/sign-in')} className="text-indigo-600 hover:text-indigo-700 font-semibold">
-              Sign in
-            </button>
-          </div>
+              <div className="mt-6 text-sm text-slate-500 text-center">
+                Already have an account?{' '}
+                <button onClick={() => router.push('/sign-in')} className="text-indigo-600 hover:text-indigo-700 font-semibold">
+                  Sign in
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Check your email</h2>
+              <p className="text-slate-500 mt-2">
+                We sent a 6-digit code to <span className="font-semibold text-slate-700">{email}</span>. Enter it below to confirm your account.
+              </p>
+
+              <form onSubmit={handleConfirm} className="mt-8 space-y-4">
+                <label className="block">
+                  <span className="text-xs font-semibold text-slate-700">Confirmation code</span>
+                  <input
+                    required
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+                    placeholder="123456"
+                    className="w-full mt-1 px-4 py-3 border border-slate-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none text-sm tracking-widest"
+                  />
+                </label>
+                {err && (
+                  <div className="text-sm text-red-600 bg-red-50 ring-1 ring-red-100 rounded-xl px-3 py-2">{err}</div>
+                )}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-70 text-white font-semibold py-3.5 rounded-full transition shadow-md flex items-center justify-center gap-2"
+                >
+                  {loading ? (
+                    <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Confirming…</>
+                  ) : 'Confirm account'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStage('register')}
+                  className="w-full text-sm text-slate-500 hover:text-slate-700 py-2"
+                >
+                  Back
+                </button>
+              </form>
+            </>
+          )}
+
           <p className="text-[11px] text-slate-400 text-center mt-8">
             By continuing you accept our Terms and Privacy Policy.
           </p>
