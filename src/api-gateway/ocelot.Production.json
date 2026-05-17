@@ -113,8 +113,7 @@
     "RateLimitOptions": {
       "DisableRateLimitHeaders": false,
       "QuotaExceededMessage": "Rate limit exceeded. Please slow down and try again.",
-      "HttpStatusCode": 429,
-      "ClientIdHeader": "Authorization"
+      "HttpStatusCode": 429
     }
   }
 }
