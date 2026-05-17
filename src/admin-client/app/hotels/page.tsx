@@ -25,6 +25,7 @@ export default function HotelsPage() {
   const [toast, setToast] = useState('')
 
   const load = useCallback(async () => {
+    if (!token) return
     setLoading(true)
     try {
       const result = await getHotels(page, PAGE_SIZE, token)

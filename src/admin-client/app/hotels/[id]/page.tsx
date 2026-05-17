@@ -39,6 +39,7 @@ export default function HotelDetailPage() {
   }
 
   const load = useCallback(async () => {
+    if (!token) return
     setLoading(true)
     const [hotelData, roomsData] = await Promise.all([
       getHotel(id, token),
