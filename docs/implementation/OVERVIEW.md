@@ -1,7 +1,7 @@
 # Implementation Overview
 
-Source of truth for implementation phases, service wiring, and deployment strategy.
-Per-service detail lives in `src/<service>/docs/README.md`.
+Source of truth for implementation phases, service wiring, and deployment architecture.
+Detailed TODO items live in `TODO_ADMIN_AND_DEPLOY.md`. Current status lives in `STATUS.md`.
 
 ---
 
@@ -9,51 +9,58 @@ Per-service detail lives in `src/<service>/docs/README.md`.
 
 | Phase | Scope | Status |
 |---|---|---|
-| 1 | Monorepo scaffold, Dockerfiles, CI/CD, EF Core models, hotel-service skeleton | Done |
-| 2 | `Program.cs` DI wiring for all services | Done |
-| 3 | Service skeletons — interfaces, models, controllers, RabbitMQ consumer | Done |
-| 4 | `hotel-service` business logic — admin, search (Redis + discount), booking (SELECT FOR UPDATE), notifications | Next |
-| 5 | `comments-service`, `notification-service`, `ai-agent-service` implementations | Pending |
-| 6 | EF Core migrations, cloud secrets, CI/CD deploy wiring | Pending |
-| 7 | Frontends — `client` (search, map, booking, AI chat) + `admin-client` | Pending |
+| 1 | Monorepo scaffold, Dockerfiles, CI (build + test), EF Core models | Done |
+| 2 | `Program.cs` DI wiring, `appsettings` config structure for all services | Done |
+| 3 | All service skeletons — controllers, interfaces, RabbitMQ consumer | Done |
+| 4 | hotel-service: admin CRUD, search (Redis cache + 15% discount), booking (SELECT FOR UPDATE), notifications | Done |
+| 4b | hotel-service unit tests — 30/30 passing in CI | Done |
+| 5 | comments-service, notification-service, ai-agent-service, cron-jobs implementations | Done |
+| 6a | Local dev: docker-compose, credentials wired, end-to-end verified locally | Done |
+| 6b | Azure ACA deployment + CD pipeline (OIDC, GHCR, 5 services) | Done |
+| 7a | client (Next.js): search, hotel detail, booking modal, notifications, AI chat | Built, not deployed |
+| 7b | admin-client (Next.js): hotel/room/availability CRUD, login | Built, not deployed |
+| 8 | Vercel deployment, Cognito wiring, real auth in both frontends | In progress |
+| 9 | Admin missing features: room delete, image upload | Pending |
+| 10 | End-to-end verification: booking → email, AI chat, 15% discount | Pending |
+| 11 | Final deliverables: README, live URLs, architecture diagram, demo video | Pending |
 
 ---
 
-## Deployment Diagram
+## Deployment Architecture
 
 ```
   Vercel (client)          Vercel (admin-client)
        │                          │
        └──────────┬───────────────┘
                   │ HTTPS
-        ┌─────────▼──────────┐
-        │   api-gateway       │  ← JWT validated here (Cognito JWKS)
-        │   Ocelot            │    All traffic enters through this
-        │   Cloud Run         │
-        └──┬──────┬──────┬───┘
-           │      │      │
-    ┌──────▼──┐ ┌─▼────┐ ┌▼───────────────┐
-    │hotel-svc│ │cmmnts│ │ai-agent-service │──► OpenAI API
-    │Cloud Run│ │-svc  │ │Cloud Run        │──► hotel-service (tool calls)
-    │         │ │Cloud │ └────────────────-┘
-    │Supabase │ │Run   │
-    │Upstash  │ │Mongo │
-    │Redis    │ │Atlas │
-    └────┬────┘ └──────┘
-         │ publish (AMQP)
-    ┌────▼──────────┐
-    │  CloudAMQP    │
-    │  RabbitMQ     │
-    └────┬──────────┘
-         │ consume
-    ┌────▼──────────┐       ┌──────────────────┐
-    │notification   │       │  cron-jobs        │
-    │-service       │       │  AWS Lambda       │
-    │Cloud Run      │       │  EventBridge      │
-    │Resend email   │       │  (nightly)        │
-    │Supabase PG    │       │  Supabase + Resend│
-    └───────────────┘       └──────────────────┘
+        ┌─────────▼────────────────────────────────────┐
+        │   api-gateway  (Azure Container Apps)         │
+        │   Ocelot — JWT validated here (Cognito JWKS)  │
+        │   External ingress, port 8080                 │
+        └──┬────────────┬─────────────┬────────────────┘
+           │ HTTPS:443  │ HTTPS:443   │ HTTPS:443
+   ┌───────▼──┐  ┌──────▼────┐  ┌────▼──────────────────┐
+   │hotel-svc │  │comments   │  │ai-agent-service        │
+   │(internal)│  │-svc       │  │(internal)              │──► OpenAI API
+   │          │  │(internal) │  │                        │──► hotel-service
+   │Supabase  │  │MongoDB    │  └───────────────────────-┘
+   │Upstash   │  │Atlas      │
+   │Redis     │  └───────────┘
+   └────┬─────┘
+        │ publish (AMQP over TLS)
+   ┌────▼──────────────┐      ┌──────────────────────┐
+   │  CloudAMQP        │      │  cron-jobs            │
+   │  RabbitMQ         │      │  AWS Lambda           │
+   └────┬──────────────┘      │  EventBridge (nightly)│
+        │ consume              └──────────────────────┘
+   ┌────▼──────────────┐
+   │notification-svc   │──► Resend email
+   │(internal)         │──► Supabase PG (Notifications table)
+   └───────────────────┘
 ```
+
+Internal service communication uses ACA's internal DNS:
+`<app-name>.internal.ashycoast-db26d23e.germanywestcentral.azurecontainerapps.io:443`
 
 ---
 
@@ -62,16 +69,16 @@ Per-service detail lives in `src/<service>/docs/README.md`.
 | Caller | Target | Protocol | Purpose |
 |---|---|---|---|
 | Frontend | api-gateway | HTTPS | All user-facing requests |
-| api-gateway | hotel-service | HTTP | Admin, Search, Booking, Notifications |
-| api-gateway | comments-service | HTTP | Comments read/write |
-| api-gateway | ai-agent-service | HTTP | Chat |
-| ai-agent-service | hotel-service | HTTP | OpenAI tool calls (search, book) |
-| hotel-service | Supabase PostgreSQL | TCP | All relational data |
-| hotel-service | Upstash Redis | TCP | Hotel detail cache |
-| hotel-service | CloudAMQP RabbitMQ | AMQP publish | After confirmed booking |
-| notification-service | CloudAMQP RabbitMQ | AMQP consume | Background listener |
+| api-gateway | hotel-service | HTTPS (internal) | Admin, Search, Booking, Notifications |
+| api-gateway | comments-service | HTTPS (internal) | Comments read/write |
+| api-gateway | ai-agent-service | HTTPS (internal) | Chat |
+| ai-agent-service | hotel-service | HTTPS (internal) | OpenAI tool calls (search, book) |
+| hotel-service | Supabase PostgreSQL | TCP (session pooler) | All relational data |
+| hotel-service | Upstash Redis | TCP (TLS) | Hotel detail cache |
+| hotel-service | CloudAMQP RabbitMQ | AMQP publish (TLS) | After confirmed booking |
+| notification-service | CloudAMQP RabbitMQ | AMQP consume (TLS) | Background listener |
 | notification-service | Resend | HTTPS | Booking confirmation email |
-| notification-service | Supabase PostgreSQL | TCP | Write in-app notification row |
+| notification-service | Supabase PostgreSQL | TCP (session pooler) | Write in-app notification row |
 | cron-jobs (Lambda) | Supabase PostgreSQL | TCP | Nightly capacity read |
 | cron-jobs (Lambda) | Resend | HTTPS | Capacity alert email |
 | All services | AWS Cognito JWKS | HTTPS | JWT signature validation |
@@ -82,20 +89,26 @@ Per-service detail lives in `src/<service>/docs/README.md`.
 
 | Service | Platform | CI/CD path filter |
 |---|---|---|
-| `api-gateway` | Cloud Run or Azure App Services | `src/api-gateway/**` |
-| `hotel-service` | Cloud Run or Azure App Services | `src/hotel-service/**` |
-| `comments-service` | Cloud Run or Azure App Services | `src/comments-service/**` |
-| `notification-service` | Cloud Run or Azure App Services | `src/notification-service/**` |
-| `ai-agent-service` | Cloud Run or Azure App Services | `src/ai-agent-service/**` |
+| `api-gateway` | Azure Container Apps (external) | `src/api-gateway/**` |
+| `hotel-service` | Azure Container Apps (internal) | `src/hotel-service/**` |
+| `comments-service` | Azure Container Apps (internal) | `src/comments-service/**` |
+| `notification-service` | Azure Container Apps (internal) | `src/notification-service/**` |
+| `ai-agent-service` | Azure Container Apps (internal) | `src/ai-agent-service/**` |
 | `cron-jobs` | AWS Lambda + EventBridge | `src/cron-jobs/**` |
 | `client` | Vercel | `src/client/**` |
 | `admin-client` | Vercel | `src/admin-client/**` |
 
-Changing one service only deploys that service. Each service has its own workflow in `.github/workflows/`.
+Each service has its own workflow in `.github/workflows/` — changing one service only deploys that service.
 
 ---
 
-## Secrets / Environment Variables (by service)
+## Secrets Management
 
-All secrets are injected at runtime via platform environment variables or Secret Manager.
-Never committed to the repository. See each service's `docs/README.md` for the full list.
+All runtime secrets are injected at runtime — never committed to the repository or baked into images.
+
+| Layer | Mechanism |
+|---|---|
+| .NET services (ACA) | ACA built-in secret store → env vars via `secretref:` |
+| GitHub Actions → Azure | OIDC federated identity (no stored credentials) |
+| Frontends | Vercel environment variables (non-secret config only) |
+| Local dev | `.env` at repo root (gitignored) |
