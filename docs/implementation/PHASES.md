@@ -211,11 +211,24 @@ Platform switched from Google Cloud Run → **Azure Container Apps** (Consumptio
 
 ## Phase 10 — Remaining Work
 
-### 10a — Bug Fixes (Next)
-- [ ] **Image upload 500** — admin image upload broken; likely Ocelot multipart forwarding or wrong Content-Type in frontend FormData
-- [ ] **Lambda AdminEmail** — test hotel has empty `AdminEmail`; capacity alerts never fire; also `InsertNotificationAsync` sets `UserId = AdminEmail` (should be Cognito `sub`)
+### 10a — Email Templates (Polish)
+Both email templates are bare unstyled HTML (`<h2>` + `<p>` tags only). Make them professional:
+- [ ] **Booking confirmation** (`src/notification-service/Services/EmailService.cs`) — branded HTML email: logo/banner, styled card with check-in/out dates, price breakdown, CTA button, footer
+- [ ] **Capacity alert** (`src/notification-service/Services/EmailService.cs` + `src/cron-jobs/Function.cs`) — admin-facing alert email: warning colour strip, hotel + room details, occupancy bar/percentage, link to admin panel
 
-### 10b — Frontend Features
+### 10b — Bug Fixes (Next)
+- [ ] **Image upload 500** — admin image upload broken; likely Ocelot multipart forwarding or wrong Content-Type in frontend FormData
+- [ ] **Lambda AdminEmail empty** — test hotel has empty `AdminEmail`; capacity alerts never fire
+- [ ] **Lambda UserId wrong** — `InsertNotificationAsync` sets `UserId = AdminEmail`; notifications panel queries by Cognito `sub` so alerts never appear. Fix: add `AdminSub` to `Hotels` model + migration; auto-fill from JWT in HotelModal; update Lambda to use `AdminSub` as UserId
+- [ ] **Admin notifications panel missing** — no bell/panel in admin-client to show Lambda capacity alerts; add slide-out panel to `AdminShell.tsx` (same pattern as user client `NotificationsPanel`)
+
+### 10b — AI Agent (Focus Next)
+- [ ] **End-to-end verify** — open chat widget, send a natural language search prompt, verify `search_hotels` tool call fires to hotel-service search API and results return to user
+- [ ] **Book via agent** — send booking intent, verify `book_hotel` tool call fires and reservation is created with correct JWT forwarding
+- [ ] **Error handling** — agent returns graceful message when search returns 0 results or booking fails
+- [ ] **UI polish** — loading indicator while waiting for OpenAI response; chat history cleared on logout
+
+### 10c — Frontend Features
 - [ ] My Bookings page — list user reservations (hotel name, dates, price, status)
 - [ ] My Account page — display profile info (name, email from Cognito JWT claims)
 - [ ] Show on Map — strictly required by course spec; hotel pins on interactive map

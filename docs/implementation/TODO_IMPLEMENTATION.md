@@ -1,7 +1,7 @@
 # Implementation TODO — Prioritized
 
 Last updated: 18.05.2026  
-Legend: ⏳ Pending | 🔜 Next
+Legend: ✅ Done | ⏳ Pending | 🔜 Next session
 
 ---
 
@@ -11,7 +11,7 @@ Everything in this phase must be done before the system is considered feature-co
 
 ---
 
-### 1.1 Room Delete (backend + frontend)
+### 1.1 Room Delete (backend + frontend) ✅
 
 **Backend**  
 File: `src/hotel-service/Services/HotelAdminService.cs`
@@ -38,127 +38,63 @@ public async Task<IActionResult> DeleteRoom(Guid id)
 ```
 
 **Frontend**  
-File: `src/admin-client/lib/api.ts` — add `deleteRoom(id, token)` function.  
-File: `src/admin-client/app/hotels/[id]/page.tsx` — add delete button next to each room row; confirm before delete.
+File: `src/admin-client/lib/api.ts` — `deleteRoom(id, token)` added.  
+File: `src/admin-client/app/hotels/[id]/page.tsx` — delete button with confirm dialog.
 
 ---
 
-### 1.2 Room Update / Edit (backend + frontend)
+### 1.2 Room Update / Edit (backend + frontend) ✅
 
 **Backend**  
-File: `src/hotel-service/Services/HotelAdminService.cs` — add `UpdateRoomAsync(roomId, dto)`.  
-File: `src/hotel-service/Controllers/AdminController.cs` — add `PUT /api/v1/admin/rooms/{id}`.  
+File: `src/hotel-service/Services/HotelAdminService.cs` — `UpdateRoomAsync(roomId, dto)` implemented.  
+File: `src/hotel-service/Controllers/AdminController.cs` — `PUT /api/v1/admin/rooms/{id}` added.  
 
 **Frontend**  
-File: `src/admin-client/app/hotels/[id]/page.tsx` — add Edit button; reuse RoomModal pre-filled with current values.
+File: `src/admin-client/app/hotels/[id]/page.tsx` — Edit button with RoomModal pre-filled with current values.
 
 ---
 
-### 1.3 Availability Delete (backend + frontend)
+### 1.3 Availability Delete (backend + frontend) ✅
 
 **Backend**  
-File: `src/hotel-service/Services/HotelAdminService.cs` — add `DeleteAvailabilityAsync(availabilityId)`.  
-Guard: check no reservations cover this availability window before deleting.  
-File: `src/hotel-service/Controllers/AdminController.cs` — add `DELETE /api/v1/admin/availability/{id}`.
+File: `src/hotel-service/Services/HotelAdminService.cs` — `DeleteAvailabilityAsync(availabilityId)` implemented.  
+Guard: checks `ReservedCount > 0` before deleting; returns 409 if occupied.  
+File: `src/hotel-service/Controllers/AdminController.cs` — `DELETE /api/v1/admin/availability/{id}` added.
 
 **Frontend**  
-File: `src/admin-client/app/hotels/[id]/page.tsx` — add delete button to availability table rows.
+File: `src/admin-client/app/hotels/[id]/page.tsx` — delete button on availability table rows.
 
 ---
 
-### 1.4 Image Upload UI (admin-client)
+### 1.4 Image Upload UI (admin-client) — ✅ UI done / ⏳ BUG-006 upload returns 500
 
-Backend endpoint already exists: `POST /api/v1/admin/hotels/{id}/image`
+Image gallery with category titles (room-interior, lobby, pool, etc.) is live in admin panel.  
+Multi-image upload + delete UI implemented.  
+**BUG-006:** Upload returns 500 — likely Ocelot multipart forwarding issue or frontend FormData problem.  
+- Files to investigate: `src/api-gateway/ocelot.Production.json`, `src/admin-client/app/hotels/[id]/page.tsx`
+- May need explicit multipart route before catch-all in ocelot.Production.json
 
-File: `src/admin-client/lib/api.ts`
-```ts
-export async function uploadHotelImage(id: string, file: File, token: string) {
-  const body = new FormData()
-  body.append('file', file)
-  const res = await fetch(`${API_URL}/api/v1/admin/hotels/${id}/image`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
-    body, // DO NOT set Content-Type — browser sets multipart boundary
-  })
-  if (!res.ok) throw new Error('Image upload failed')
-  return res.json()
-}
-```
-
-File: `src/admin-client/app/hotels/[id]/page.tsx`
-- Hotel cover image preview (show `hotel.imageUrl` or placeholder)
-- `<input type="file" accept="image/*">` hidden, triggered by a button
-- Client-side guard: reject files > 5 MB before uploading
-- Show thumbnail in hotel list (`src/admin-client/app/hotels/page.tsx`)
-
-Also verify: Supabase Dashboard → Storage → bucket `hotel-images` must exist with public-read policy.
-
-Test end-to-end once real auth is in place:
-```bash
-curl -X POST <gateway>/api/v1/admin/hotels/{id}/image \
-  -H "Authorization: Bearer <cognito_token>" \
-  -F "file=@test.jpg"
-```
-If 400, add an explicit multipart route in `ocelot.Production.json` before the catch-all.
+⏳ **Pending:** Verify `.webp` format accepted — confirm `accept="image/*"` includes webp; test Supabase storage accepts webp uploads.
 
 ---
 
-### 1.5 Lambda EventBridge Trigger
+### 1.5 Lambda EventBridge Trigger ✅
 
-Lambda already deployed. Needs a nightly EventBridge rule to invoke it.
-
-```bash
-# Create the rule (fires at 02:00 UTC every day)
-aws events put-rule \
-  --name "nightly-capacity-check" \
-  --schedule-expression "cron(0 2 * * ? *)" \
-  --state ENABLED \
-  --region us-east-1
-
-# Add Lambda as target
-aws events put-targets \
-  --rule "nightly-capacity-check" \
-  --targets "Id=1,Arn=<LAMBDA_ARN>" \
-  --region us-east-1
-
-# Grant EventBridge permission to invoke the Lambda
-aws lambda add-permission \
-  --function-name HotelBookingCronJobs \
-  --statement-id EventBridgeInvoke \
-  --action lambda:InvokeFunction \
-  --principal events.amazonaws.com \
-  --source-arn <RULE_ARN> \
-  --region us-east-1
-```
-
-After creating, do a manual test invoke:
-```bash
-aws lambda invoke --function-name HotelBookingCronJobs --payload '{}' out.json --region us-east-1
-cat out.json
-```
+Lambda `CapacityCheckerFunction` deployed (dotnet10, 512MB, 60s, us-east-1).  
+EventBridge rule `nightly-capacity-check` — `cron(0 1 * * ? *)` (01:00 UTC).  
+Test invoke verified: "0 alert(s) sent", 2168ms cold start, CloudWatch logs confirmed.  
+GitHub secrets set: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, `LAMBDA_EXECUTION_ROLE_ARN`.
 
 ---
 
-### 1.6 Notification End-to-End Verification
+### 1.6 Notification End-to-End Verification ✅
 
-Flow: book a room → hotel-service publishes `BookingEvent` to RabbitMQ → notification-service consumer receives → Resend email sent + in-app `Notifications` row inserted.
-
-Steps:
-1. Sign in as a real user in the frontend
-2. Book an available room
-3. Check CloudAMQP dashboard — confirm `booking-events` queue received a message
-4. Check notification-service ACA logs: `az container logs -g rg-hotelbooking-prod --name notification-service`
-   - Look for "Consumed BookingEvent" log line
-5. Check email inbox (the one used at sign-up) — Resend confirmation email
-6. Check notifications panel in the user client — unread badge should appear
-
-If Resend is blocked:
-- Verify from-address is `onboarding@resend.dev` (allowed on free tier) or a verified domain
-- Check notification-service `RESEND_API_KEY` env var in ACA secrets
+Flow verified: book → RabbitMQ `booking-events` → notification-service → Resend email (200) + Supabase Notifications row written + in-app panel shows notification.  
+Bugs fixed during verification: BUG-004 (crash loop), BUG-009 (queue name mismatch), BUG-010 (JWT sub claim), BUG-011 (access token vs ID token).
 
 ---
 
-### 1.7 Admin Reservations View
+### 1.7 Admin Reservations View ⏳
 
 Endpoint already exists: `GET /api/v1/bookings/reservations` (hotel-service, `[Authorize]`)
 
@@ -169,7 +105,7 @@ File: `src/admin-client/app/reservations/page.tsx` (new page)
 
 ---
 
-### 1.8 Cache Invalidation on Hotel/Room/Availability Writes
+### 1.8 Cache Invalidation on Hotel/Room/Availability Writes ⏳
 
 Currently Redis cache (5-min TTL) is never invalidated on writes, so after an admin
 creates/updates a room or availability, stale results may show for up to 5 minutes.
@@ -184,13 +120,39 @@ File: `src/hotel-service/Services/HotelAdminService.cs`
 
 ---
 
+### 1.9 Main Hotel Image in Search Results ⏳
+
+Search result cards currently show no primary image.  
+Each hotel has images stored in Supabase Storage (`hotel-images` bucket) with category titles.  
+Define a convention: first uploaded image, or image with category `"lobby"` as the primary.
+
+File: `src/hotel-service/Services/SearchService.cs` — include first image URL in search response.  
+File: `src/client/components/HotelCard.tsx` — show `<img>` using the returned URL; fallback to placeholder.
+
+---
+
+### 1.10 Admin Notifications Panel ⏳
+
+No bell/drawer in admin-client to show Lambda capacity alerts.  
+Lambda inserts notifications with `UserId = AdminEmail` (BUG-007 — should be Cognito `sub`).
+
+Fix BUG-007 first:
+- Add `AdminSub` column to `Hotels` model + EF migration
+- Auto-fill `AdminSub` from JWT in HotelModal on hotel create
+- Update `Function.cs` in cron-jobs to use `AdminSub` as `UserId`
+
+Then add notifications panel:
+File: `src/admin-client/components/AdminShell.tsx` — add bell icon + unread badge + slide-out drawer (same pattern as user client `NotificationsPanel`).
+
+---
+
 ## PHASE 2 — Input Validation
 
 All validation failures should return `400 Bad Request` with a clear error message.
 
 ---
 
-### 2.1 Backend — Validation Attributes on DTOs
+### 2.1 Backend — Validation Attributes on DTOs ⏳
 
 File: `src/hotel-service/DTOs/` (create if not exists, or add attributes to existing request models)
 
@@ -233,17 +195,17 @@ Or use `[ApiController]` (already applied) — this auto-returns 400 on invalid 
 
 ---
 
-### 2.2 Backend — Delete Cascade Checks
+### 2.2 Backend — Delete Cascade Checks ⏳
 
 File: `src/hotel-service/Services/HotelAdminService.cs`
 
-- `DeleteHotelAsync`: check no rooms exist for this hotel; return 409 if they do (or cascade-delete rooms+availability together — document the choice)
-- `DeleteRoomAsync`: check no active/future reservations; return 409 if they exist
-- `DeleteAvailabilityAsync`: check no overlapping reservations
+- `DeleteHotelAsync`: check no rooms exist for this hotel; return 409 if they do (or cascade-delete rooms+availability together — document the choice). **BUG-005 open.**
+- `DeleteRoomAsync`: check no active/future reservations; return 409 if they exist ✅ implemented
+- `DeleteAvailabilityAsync`: check no overlapping reservations ✅ implemented
 
 ---
 
-### 2.3 Frontend — Form Validation
+### 2.3 Frontend — Form Validation ⏳
 
 **Admin client** (files: `src/admin-client/components/HotelModal.tsx`, `RoomModal.tsx`, `AvailabilityModal.tsx`):
 - Required fields highlighted on submit attempt
@@ -262,7 +224,7 @@ File: `src/hotel-service/Services/HotelAdminService.cs`
 
 ---
 
-### 3.1 Location Search Improvement
+### 3.1 Location Search Improvement ⏳
 
 Current: `hotel.Location.Contains(query)` — case-sensitive substring, no ranking.
 
@@ -285,7 +247,7 @@ For the course demo, Option A is sufficient. Option B is the production-grade ap
 
 ---
 
-### 3.2 Database Indexes
+### 3.2 Database Indexes ⏳
 
 Add an EF Core migration:
 ```csharp
@@ -299,7 +261,7 @@ These are critical for search queries that filter by date range + vacancy + hote
 
 ---
 
-### 3.3 Search Result Ranking
+### 3.3 Search Result Ranking ⏳
 
 After fetching results, rank by:
 1. Star rating (descending)
@@ -314,44 +276,40 @@ This is a pure service-layer change in `SearchService.cs`, no DB changes needed.
 
 ---
 
-### 4.1 Notification Consumer — Crash Protection
+### 4.1 Notification Consumer — Crash Protection ✅
 
 File: `src/notification-service/Consumers/BookingEventConsumer.cs`
 
-Wrap the entire message handler body:
-```csharp
-try
-{
-    var booking = JsonSerializer.Deserialize<BookingEvent>(body);
-    await _emailService.SendBookingConfirmationAsync(booking!);
-    await _notificationWriter.WriteAsync(booking!);
-    _channel.BasicAck(ea.DeliveryTag, multiple: false);
-}
-catch (Exception ex)
-{
-    _logger.LogError(ex, "Failed to process BookingEvent. Nacking message.");
-    _channel.BasicNack(ea.DeliveryTag, multiple: false, requeue: false);
-}
-```
+Email failures isolated in try-catch so in-app notification always writes and message is always ACKed. Fixed in Session 9b (BUG-004).
 
 ---
 
-### 4.2 AI Agent Tool Error Recovery
+### 4.2 AI Agent — End-to-End Verification 🔜
+
+**This is a course requirement. Verify before final demo.**
 
 File: `src/ai-agent-service/Services/AgentService.cs`
 
-In the tool call execution loop, catch HTTP errors from hotel-service:
+Steps:
+1. Open user client chat widget — send "find me a hotel in Istanbul"
+2. Verify `search_hotels` tool call fires to hotel-service search API
+3. Verify results are returned and displayed in chat
+4. Send booking intent — verify `book_hotel` tool call creates a reservation
+5. Verify JWT is forwarded correctly (no 401 from hotel-service)
+
+Tool error recovery — catch HTTP errors from hotel-service:
 ```csharp
 try { result = await ExecuteToolAsync(toolCall); }
 catch (HttpRequestException ex) {
     result = $"{{\"error\": \"Tool execution failed: {ex.Message}\"}}";
 }
 ```
-Append the error result to the message list so OpenAI can explain the failure gracefully.
+
+Also: loading indicator while waiting for OpenAI response; chat history cleared on logout.
 
 ---
 
-### 4.3 Token Refresh on 401 (User Client)
+### 4.3 Token Refresh on 401 (User Client) ⏳
 
 File: `src/client/lib/api.ts`
 
@@ -372,11 +330,85 @@ async function fetchWithRefresh(url: string, options: RequestInit): Promise<Resp
 
 ---
 
+### 4.4 Professional Email Templates ⏳
+
+Both email templates are bare unstyled HTML (`<h2>` + `<p>` tags only).
+
+**Booking confirmation** (`src/notification-service/Services/EmailService.cs`):
+- Branded HTML card: logo/banner, styled check-in/out dates, price breakdown, CTA "View Booking" button, footer
+
+**Capacity alert** (`src/notification-service/Services/EmailService.cs` + `src/cron-jobs/Function.cs`):
+- Warning color strip, hotel + room details, occupancy bar/percentage, "Open Admin Panel" link
+
+---
+
+### 4.5 Row Level Security (Supabase RLS) ⏳
+
+Currently all Supabase tables are accessible by the service role without restriction.
+
+Tables to add RLS policies:
+- `Notifications` — user can only SELECT their own rows (`UserId = auth.uid()`)
+- `Reservations` — user can only SELECT their own rows
+- Hotels/Rooms/Availability — read-only for anon; admin role for writes
+
+Implementation: Supabase Dashboard → Table Editor → each table → Policies.  
+Service role key bypasses RLS — backend uses service role so no changes to .NET code needed for writes.  
+Future: consider row-level restrictions for multi-tenant admin scenarios.
+
+---
+
+### 4.6 Repository Layer Refactor ⏳
+
+Move all DB calls from service classes into dedicated repository classes.
+
+Pattern:
+```
+Services/
+  HotelAdminService.cs  → business logic, validation, calls IHotelRepository
+  SearchService.cs       → search + cache logic, calls IHotelRepository + IRoomAvailabilityRepository
+
+Repositories/
+  IHotelRepository.cs
+  HotelRepository.cs     → EF Core queries only, no business logic
+  IRoomAvailabilityRepository.cs
+  RoomAvailabilityRepository.cs
+```
+
+Benefits: testable without EF Core InMemory; cleaner service layer; easier to add validation before DB writes.  
+Do this **after** BUG-005 + input validation are fixed — refactor clean code.
+
+---
+
+### 4.7 Custom Typed Exceptions ⏳
+
+Replace `InvalidOperationException` with domain-specific exceptions.
+
+```csharp
+// src/hotel-service/Exceptions/
+public class RoomNotAvailableException : Exception { ... }
+public class HotelNotFoundException : Exception { ... }
+public class RoomNotFoundException : Exception { ... }
+public class ReservationConflictException : Exception { ... }
+```
+
+Map to HTTP status codes in a global exception handler middleware or `IExceptionHandler`.
+
+---
+
+### 4.8 Add CI Tests After Repository Layer ⏳
+
+After repository layer refactor, add:
+- Repository integration tests against real Supabase (or test DB)
+- Controller-level tests with WebApplicationFactory
+- Add test job to CI workflows (hotel-service already has unit tests; extend to integration)
+
+---
+
 ## PHASE 5 — Frontend UX Polish
 
 ---
 
-### 5.1 Member Discount Display
+### 5.1 Member Discount Display ⏳
 
 File: `src/client/components/HotelCard.tsx` and search results
 
@@ -392,7 +424,7 @@ just needs to detect `isAuthenticated` and show the "member price" badge.
 
 ---
 
-### 5.2 Error Toast Notifications
+### 5.2 Error Toast Notifications ⏳
 
 Install: `npm install react-hot-toast` (or use existing shadcn/ui `sonner` if available)
 
@@ -406,7 +438,7 @@ Add `<Toaster />` to `src/client/app/layout.tsx`.
 
 ---
 
-### 5.3 Loading States
+### 5.3 Loading States ⏳
 
 File: `src/client/app/search/page.tsx`
 - Show skeleton cards while fetching results
@@ -421,7 +453,7 @@ File: `src/admin-client/app/hotels/page.tsx`
 
 ---
 
-### 5.4 AI Chat Error Handling
+### 5.4 AI Chat Error Handling ⏳
 
 File: `src/client/components/AIChat.tsx`
 
@@ -435,7 +467,58 @@ setMessages(prev => [...prev, {
 
 ---
 
-### 5.5 Admin Dashboard / Stats Page
+### 5.5 My Bookings Page ⏳
+
+File: `src/client/app/bookings/page.tsx` (new page)
+
+- List user reservations: hotel name, room type, check-in, check-out, price paid, status
+- Call `GET /api/v1/bookings/my-reservations` (or use existing reservations endpoint filtered by JWT sub)
+- Pagination
+- Link from navbar "My Bookings"
+
+---
+
+### 5.6 My Account / Settings Page ⏳
+
+File: `src/client/app/account/page.tsx` (new page)
+
+- Show profile info from Cognito JWT claims: `name`, `email`, `sub`
+- Preferences section: notification toggle, preferred currency (display only for demo)
+- Link from navbar "Account" or user avatar menu
+- Actual functionality: at minimum show real profile data from JWT; save preferences to localStorage
+
+---
+
+### 5.7 All Navbar Buttons Functional ⏳
+
+File: `src/client/components/Header.tsx` (and any nav components)
+
+Currently some navbar links are placeholder hrefs (`#`). Make them route to real pages:
+- "My Bookings" → `/bookings`
+- "Account" / user avatar → `/account`
+- "Sign In" → `/auth/signin`
+- "Sign Up" → `/auth/signup`
+- Logo → `/`
+- Any other placeholder links identified during review
+
+---
+
+### 5.8 Hotel Data Seeding ⏳
+
+Seed realistic hotel data via admin panel or direct SQL for a compelling demo.
+
+Target: 10–20 hotels across 5+ cities (Istanbul, Paris, London, Dubai, New York) with:
+- Hotel name, location, star rating (1–5), admin email, description
+- 2–4 room types per hotel (Single, Double, Suite, Deluxe)
+- Base prices (range: $50–$500/night), max guests
+- Availability windows for the next 3 months (reasonable total/reserved counts)
+- At least one image per hotel (lobby or room-interior)
+
+Approach: use admin panel UI or write a seed SQL script run via Supabase SQL Editor.
+
+---
+
+### 5.9 Admin Dashboard / Stats Page ⏳
 
 File: `src/admin-client/app/page.tsx` (currently empty or redirect)
 
@@ -453,11 +536,11 @@ Simple card grid layout, no charting library needed for demo.
 
 ---
 
-### 6.1 docker-compose.yml cleanup
+### 6.1 docker-compose.yml cleanup ⏳
 
 File: `docker-compose.yml` line 1 — delete `version: "3.9"`. Compose V2 ignores it and prints a warning.
 
-### 6.2 End-to-End Smoke Test
+### 6.2 End-to-End Smoke Test ⏳
 
 Verify every user flow works together:
 
@@ -472,7 +555,7 @@ Verify every user flow works together:
 | Admin image | Upload image for hotel | Thumbnail appears in hotel list |
 | Nightly cron | Invoke Lambda manually | Capacity alert email received |
 
-### 6.3 Update README
+### 6.3 Update README ⏳
 
 File: `README.md`
 
@@ -483,7 +566,7 @@ Add sections:
 - Test commands (`dotnet test`)
 - CI/CD overview
 
-### 6.4 Demo Video
+### 6.4 Demo Video ⏳
 
 5-minute walkthrough covering:
 1. Search as guest vs member (show price difference)

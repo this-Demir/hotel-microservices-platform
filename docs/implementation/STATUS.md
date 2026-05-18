@@ -64,16 +64,23 @@ All 5 .NET 9 services on Azure Container Apps, Germany West Central.
 
 ### 10a — Bug Fixes
 - [ ] Image upload 500 (BUG-006)
-- [ ] Lambda AdminEmail + UserId fix (BUG-007, BUG-008)
+- [ ] Lambda `AdminEmail` empty on test hotel (BUG-008)
+- [ ] Lambda `UserId = AdminEmail` mismatch — notifications never visible (BUG-007); fix: add `AdminSub` to Hotels, auto-fill from JWT in HotelModal, update Lambda to use `AdminSub`
+- [ ] Admin notifications panel missing — no bell/drawer in admin-client to show Lambda capacity alerts
 
-### 10b — Frontend Features
+### 10b — AI Agent (Focus Next)
+- [ ] End-to-end verify chat widget → `search_hotels` tool → hotel-service search API
+- [ ] Booking via agent — `book_hotel` tool call with JWT forwarding
+- [ ] Error handling + loading UX in chat widget
+
+### 10c — Frontend Features
 - [ ] My Bookings page (user's reservations list)
 - [ ] My Account page (profile info from JWT)
 - [ ] Show on Map — **required by course spec**
 - [ ] Member discount badge in search results
 - [ ] Error toasts + loading states
 
-### 10c — Architecture Cleanup
+### 10d — Architecture Cleanup
 - [ ] Repository layer (move DB calls out of services)
 - [ ] Custom typed exceptions
 - [ ] Backend + frontend input validation
