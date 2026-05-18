@@ -5,6 +5,9 @@ public record CreateHotelRequest(string Name, string LocationPoint, string Descr
 public record UpdateHotelRequest(string Name, string LocationPoint, string Description, string AdminEmail);
 public record HotelResponse(Guid Id, string Name, string LocationPoint, string Description, string AdminEmail, string? ImageUrl);
 
+// Hotel images
+public record HotelImageResponse(Guid Id, Guid HotelId, string Title, string ImageUrl, DateTime CreatedAt);
+
 // Rooms
 public record CreateRoomRequest(Guid HotelId, string RoomType, decimal BasePrice);
 public record UpdateRoomRequest(string RoomType, decimal BasePrice);

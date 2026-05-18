@@ -10,6 +10,7 @@ public class HotelDbContext(DbContextOptions<HotelDbContext> options) : DbContex
     public DbSet<RoomAvailability> RoomAvailabilities => Set<RoomAvailability>();
     public DbSet<Reservation> Reservations => Set<Reservation>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<HotelImage> HotelImages => Set<HotelImage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -46,6 +47,13 @@ public class HotelDbContext(DbContextOptions<HotelDbContext> options) : DbContex
         {
             e.HasKey(n => n.Id);
             e.Property(n => n.Id).HasDefaultValueSql("gen_random_uuid()");
+        });
+
+        modelBuilder.Entity<HotelImage>(e =>
+        {
+            e.HasKey(i => i.Id);
+            e.Property(i => i.Id).HasDefaultValueSql("gen_random_uuid()");
+            e.HasOne(i => i.Hotel).WithMany().HasForeignKey(i => i.HotelId).OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

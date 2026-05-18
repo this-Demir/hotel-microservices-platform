@@ -52,6 +52,14 @@ export interface SetAvailabilityRequest {
   totalCapacity: number
 }
 
+export interface HotelImageResponse {
+  id: string
+  hotelId: string
+  title: string
+  imageUrl: string
+  createdAt: string
+}
+
 export interface PagedResult<T> {
   items: T[]
   page: number

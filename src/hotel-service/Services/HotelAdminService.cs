@@ -65,16 +65,25 @@ public class HotelAdminService(
         return new PagedResult<HotelResponse>(items, page, pageSize, total);
     }
 
-    public async Task<HotelResponse?> UploadHotelImageAsync(Guid id, IFormFile file)
+    public async Task<IEnumerable<HotelImageResponse>> GetHotelImagesAsync(Guid hotelId)
     {
-        var hotel = await db.Hotels.FindAsync(id);
-        if (hotel is null) return null;
+        return await db.HotelImages
+            .Where(i => i.HotelId == hotelId)
+            .OrderBy(i => i.CreatedAt)
+            .Select(i => new HotelImageResponse(i.Id, i.HotelId, i.Title, i.ImageUrl, i.CreatedAt))
+            .ToListAsync();
+    }
+
+    public async Task<HotelImageResponse> UploadHotelImageAsync(Guid hotelId, string title, IFormFile file)
+    {
+        var hotel = await db.Hotels.FindAsync(hotelId)
+            ?? throw new KeyNotFoundException("Hotel not found.");
 
         var supabaseUrl = config["Supabase:Url"]!;
         var serviceKey = config["Supabase:ServiceRoleKey"]!;
         var bucket = config["Supabase:StorageBucket"] ?? "hotel-images";
         var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
-        var objectPath = $"hotels/{id}/cover{ext}";
+        var objectPath = $"hotels/{hotelId}/{title}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}{ext}";
 
         using var content = new StreamContent(file.OpenReadStream());
         content.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
@@ -91,9 +100,39 @@ public class HotelAdminService(
         var response = await http.SendAsync(req);
         response.EnsureSuccessStatusCode();
 
-        hotel.ImageUrl = $"{supabaseUrl}/storage/v1/object/public/{bucket}/{objectPath}";
+        var imageUrl = $"{supabaseUrl}/storage/v1/object/public/{bucket}/{objectPath}";
+
+        var image = new HotelImage { HotelId = hotelId, Title = title, ImageUrl = imageUrl };
+        db.HotelImages.Add(image);
+
+        // first image becomes the cover used in search results
+        if (hotel.ImageUrl is null)
+            hotel.ImageUrl = imageUrl;
+
         await db.SaveChangesAsync();
-        return ToResponse(hotel);
+        return new HotelImageResponse(image.Id, image.HotelId, image.Title, image.ImageUrl, image.CreatedAt);
+    }
+
+    public async Task<bool> DeleteHotelImageAsync(Guid imageId)
+    {
+        var image = await db.HotelImages.FindAsync(imageId);
+        if (image is null) return false;
+
+        db.HotelImages.Remove(image);
+
+        // if deleted image was the cover, promote the next oldest image
+        var hotel = await db.Hotels.FindAsync(image.HotelId);
+        if (hotel is not null && hotel.ImageUrl == image.ImageUrl)
+        {
+            var next = await db.HotelImages
+                .Where(i => i.HotelId == image.HotelId && i.Id != imageId)
+                .OrderBy(i => i.CreatedAt)
+                .FirstOrDefaultAsync();
+            hotel.ImageUrl = next?.ImageUrl;
+        }
+
+        await db.SaveChangesAsync();
+        return true;
     }
 
     public async Task<RoomResponse> CreateRoomAsync(CreateRoomRequest request)

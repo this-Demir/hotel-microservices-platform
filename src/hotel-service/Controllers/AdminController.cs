@@ -42,11 +42,26 @@ public class AdminController(IHotelAdminService adminService) : ControllerBase
         return deleted ? NoContent() : NotFound();
     }
 
-    [HttpPost("hotels/{id:guid}/image")]
-    public async Task<IActionResult> UploadHotelImage(Guid id, IFormFile file)
+    [HttpGet("hotels/{id:guid}/images")]
+    public async Task<IActionResult> GetHotelImages(Guid id)
+        => Ok(await adminService.GetHotelImagesAsync(id));
+
+    [HttpPost("hotels/{id:guid}/images")]
+    public async Task<IActionResult> UploadHotelImage(Guid id, IFormFile file, [FromForm] string title)
     {
-        var hotel = await adminService.UploadHotelImageAsync(id, file);
-        return hotel is null ? NotFound() : Ok(hotel);
+        try
+        {
+            var image = await adminService.UploadHotelImageAsync(id, title, file);
+            return Ok(image);
+        }
+        catch (KeyNotFoundException) { return NotFound(); }
+    }
+
+    [HttpDelete("hotels/{hotelId:guid}/images/{imageId:guid}")]
+    public async Task<IActionResult> DeleteHotelImage(Guid hotelId, Guid imageId)
+    {
+        var deleted = await adminService.DeleteHotelImageAsync(imageId);
+        return deleted ? NoContent() : NotFound();
     }
 
     [HttpGet("rooms")]

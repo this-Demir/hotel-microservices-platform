@@ -5,11 +5,12 @@ import { useParams, useRouter } from 'next/navigation'
 import AdminShell from '@/components/AdminShell'
 import RoomModal from '@/components/RoomModal'
 import AvailabilityModal from '@/components/AvailabilityModal'
-import { getHotel, getRooms, createRoom, updateRoom, deleteRoom, getAvailability, setAvailability, deleteAvailability } from '@/lib/api'
+import { getHotel, getRooms, createRoom, updateRoom, deleteRoom, getAvailability, setAvailability, deleteAvailability, getHotelImages, uploadHotelImage, deleteHotelImage } from '@/lib/api'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { useAuth } from '@/lib/auth-context'
 import type {
   HotelResponse,
+  HotelImageResponse,
   RoomResponse,
   AvailabilityResponse,
   CreateRoomRequest,
@@ -31,6 +32,11 @@ export default function HotelDetailPage() {
   const [availability, setAvailabilityList] = useState<AvailabilityResponse[]>([])
   const [availLoading, setAvailLoading] = useState(false)
 
+  const [images, setImages] = useState<HotelImageResponse[]>([])
+  const [imageTitle, setImageTitle] = useState('room-interior')
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imageUploading, setImageUploading] = useState(false)
+
   const [roomModal, setRoomModal] = useState<RoomResponse | null | false>(false)
   const [availRoom, setAvailRoom] = useState<RoomResponse | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<RoomResponse | null>(null)
@@ -47,13 +53,15 @@ export default function HotelDetailPage() {
   const load = useCallback(async () => {
     if (!token) return
     setLoading(true)
-    const [hotelData, roomsData] = await Promise.all([
+    const [hotelData, roomsData, imagesData] = await Promise.all([
       getHotel(id, token),
       getRooms(id, token),
+      getHotelImages(id, token),
     ])
     if (!hotelData) { router.replace('/hotels'); return }
     setHotel(hotelData)
     setRooms(roomsData.items)
+    setImages(imagesData)
     setLoading(false)
   }, [id, token, router])
 
@@ -69,6 +77,32 @@ export default function HotelDetailPage() {
     const avail = await getAvailability(room.id, token)
     setAvailabilityList(avail)
     setAvailLoading(false)
+  }
+
+  async function handleUploadImage() {
+    if (!imageFile) return
+    if (imageFile.size > 5 * 1024 * 1024) { showToast('Image must be under 5 MB'); return }
+    setImageUploading(true)
+    try {
+      const uploaded = await uploadHotelImage(id, imageTitle, imageFile, token)
+      setImages((prev) => [...prev, uploaded])
+      setImageFile(null)
+      showToast('Image uploaded')
+    } catch {
+      showToast('Upload failed')
+    } finally {
+      setImageUploading(false)
+    }
+  }
+
+  async function handleDeleteImage(image: HotelImageResponse) {
+    try {
+      await deleteHotelImage(id, image.id, token)
+      setImages((prev) => prev.filter((i) => i.id !== image.id))
+      showToast('Image deleted')
+    } catch {
+      showToast('Delete failed')
+    }
   }
 
   async function handleSaveRoom(data: CreateRoomRequest) {
@@ -164,6 +198,73 @@ export default function HotelDetailPage() {
               {hotel.adminEmail}
             </span>
           </div>
+        </div>
+
+        {/* Images section */}
+        <div>
+          <h2 className="font-semibold text-gray-900 mb-3">
+            Images{' '}
+            <span className="text-gray-400 font-normal text-sm">({images.length})</span>
+          </h2>
+
+          {/* Upload row */}
+          <div className="flex items-center gap-3 mb-4">
+            <select
+              value={imageTitle}
+              onChange={(e) => setImageTitle(e.target.value)}
+              className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+            >
+              {['room-interior','room-overall','lobby','exterior','pool','restaurant','spa','bathroom','corridor','terrace'].map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+            <label className="flex-1 cursor-pointer">
+              <div className="px-3 py-2 text-sm border border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-indigo-400 hover:text-indigo-600 transition-colors truncate">
+                {imageFile ? imageFile.name : 'Choose image…'}
+              </div>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
+              />
+            </label>
+            <button
+              onClick={handleUploadImage}
+              disabled={!imageFile || imageUploading}
+              className="px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-40 transition-colors shrink-0"
+            >
+              {imageUploading ? 'Uploading…' : 'Upload'}
+            </button>
+          </div>
+
+          {/* Image grid */}
+          {images.length === 0 ? (
+            <div className="bg-white rounded-xl border border-dashed border-gray-200 text-center py-10 text-gray-400 text-sm">
+              No images yet. Upload the first one above.
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {images.map((img) => (
+                <div key={img.id} className="group relative rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
+                  <img
+                    src={img.imageUrl}
+                    alt={img.title}
+                    className="w-full h-36 object-cover"
+                  />
+                  <div className="px-3 py-2 flex items-center justify-between">
+                    <span className="text-xs font-medium text-gray-600 truncate">{img.title}</span>
+                    <button
+                      onClick={() => handleDeleteImage(img)}
+                      className="text-xs text-red-500 hover:text-red-700 transition-colors shrink-0 ml-2"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Rooms section */}

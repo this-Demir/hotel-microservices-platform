@@ -2,6 +2,7 @@ import type {
   HotelResponse,
   CreateHotelRequest,
   UpdateHotelRequest,
+  HotelImageResponse,
   RoomResponse,
   CreateRoomRequest,
   UpdateRoomRequest,
@@ -113,6 +114,45 @@ export async function deleteHotel(id: string, token?: string): Promise<boolean> 
     headers: { Authorization: `Bearer ${token}` },
   })
   return res.status === 204
+}
+
+// ── Hotel Images ─────────────────────────────────────────────────────────────
+
+export async function getHotelImages(hotelId: string, token?: string): Promise<HotelImageResponse[]> {
+  if (!API_URL) return []
+  const res = await fetch(`${API_URL}/api/v1/admin/hotels/${hotelId}/images`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!res.ok) throw new Error('Failed to fetch images')
+  return res.json()
+}
+
+export async function uploadHotelImage(
+  hotelId: string,
+  title: string,
+  file: File,
+  token?: string,
+): Promise<HotelImageResponse> {
+  if (!API_URL) throw new Error('No API URL configured')
+  const body = new FormData()
+  body.append('file', file)
+  body.append('title', title)
+  const res = await fetch(`${API_URL}/api/v1/admin/hotels/${hotelId}/images`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body,
+  })
+  if (!res.ok) throw new Error('Image upload failed')
+  return res.json()
+}
+
+export async function deleteHotelImage(hotelId: string, imageId: string, token?: string): Promise<void> {
+  if (!API_URL) return
+  const res = await fetch(`${API_URL}/api/v1/admin/hotels/${hotelId}/images/${imageId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!res.ok && res.status !== 204) throw new Error('Failed to delete image')
 }
 
 // ── Rooms ────────────────────────────────────────────────────────────────────

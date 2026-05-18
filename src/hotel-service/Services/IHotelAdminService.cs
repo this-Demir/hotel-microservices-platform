@@ -10,7 +10,9 @@ public interface IHotelAdminService
     Task<bool> DeleteHotelAsync(Guid id);
     Task<HotelResponse?> GetHotelAsync(Guid id);
     Task<PagedResult<HotelResponse>> GetHotelsAsync(int page, int pageSize);
-    Task<HotelResponse?> UploadHotelImageAsync(Guid id, IFormFile file);
+    Task<IEnumerable<HotelImageResponse>> GetHotelImagesAsync(Guid hotelId);
+    Task<HotelImageResponse> UploadHotelImageAsync(Guid hotelId, string title, IFormFile file);
+    Task<bool> DeleteHotelImageAsync(Guid imageId);
 
     Task<RoomResponse> CreateRoomAsync(CreateRoomRequest request);
     Task<RoomResponse?> UpdateRoomAsync(Guid id, UpdateRoomRequest request);
