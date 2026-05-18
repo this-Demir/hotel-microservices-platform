@@ -109,12 +109,6 @@
     }
   ],
   "GlobalConfiguration": {
-    "BaseUrl": "https://api-gateway.ashycoast-db26d23e.germanywestcentral.azurecontainerapps.io",
-    "RateLimitOptions": {
-      "DisableRateLimitHeaders": false,
-      "QuotaExceededMessage": "Rate limit exceeded. Please slow down and try again.",
-      "HttpStatusCode": 429,
-      "ClientIdHeader": "X-Forwarded-For"
-    }
+    "BaseUrl": "https://api-gateway.ashycoast-db26d23e.germanywestcentral.azurecontainerapps.io"
   }
 }
