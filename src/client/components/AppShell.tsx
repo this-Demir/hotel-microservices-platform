@@ -14,11 +14,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [notifications, setNotifications] = useState<NotificationResponse[]>([])
 
   useEffect(() => {
-    if (isLoggedIn && token) {
-      getNotifications(token).then((res) => setNotifications(res.items))
-    } else {
-      setNotifications([])
-    }
+    if (!isLoggedIn || !token) { setNotifications([]); return }
+    const fetch = () => getNotifications(token).then((res) => setNotifications(res.items)).catch(() => {})
+    fetch()
+    const id = setInterval(fetch, 30_000)
+    return () => clearInterval(id)
   }, [isLoggedIn, token])
 
   const unreadCount = notifications.filter((n) => !n.isRead).length
