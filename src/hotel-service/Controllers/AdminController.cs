@@ -57,6 +57,20 @@ public class AdminController(IHotelAdminService adminService) : ControllerBase
     public async Task<IActionResult> CreateRoom([FromBody] CreateRoomRequest request)
         => Ok(await adminService.CreateRoomAsync(request));
 
+    [HttpDelete("rooms/{id:guid}")]
+    public async Task<IActionResult> DeleteRoom(Guid id)
+    {
+        try
+        {
+            var deleted = await adminService.DeleteRoomAsync(id);
+            return deleted ? NoContent() : NotFound();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { error = ex.Message });
+        }
+    }
+
     [HttpGet("availability")]
     public async Task<IActionResult> GetAvailability([FromQuery] Guid roomId)
         => Ok(await adminService.GetAvailabilityAsync(roomId));

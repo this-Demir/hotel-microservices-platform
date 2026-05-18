@@ -5,7 +5,8 @@ import { useParams, useRouter } from 'next/navigation'
 import AdminShell from '@/components/AdminShell'
 import RoomModal from '@/components/RoomModal'
 import AvailabilityModal from '@/components/AvailabilityModal'
-import { getHotel, getRooms, createRoom, getAvailability, setAvailability } from '@/lib/api'
+import { getHotel, getRooms, createRoom, deleteRoom, getAvailability, setAvailability } from '@/lib/api'
+import ConfirmDialog from '@/components/ConfirmDialog'
 import { useAuth } from '@/lib/auth-context'
 import type {
   HotelResponse,
@@ -31,6 +32,8 @@ export default function HotelDetailPage() {
 
   const [showRoomModal, setShowRoomModal] = useState(false)
   const [availRoom, setAvailRoom] = useState<RoomResponse | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<RoomResponse | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
   const [toast, setToast] = useState('')
 
   function showToast(msg: string) {
@@ -69,6 +72,22 @@ export default function HotelDetailPage() {
     await createRoom(data, token)
     showToast('Room added')
     setShowRoomModal(false)
+    await load()
+  }
+
+  async function handleDeleteRoom() {
+    if (!deleteTarget) return
+    setDeleteLoading(true)
+    const result = await deleteRoom(deleteTarget.id, token)
+    setDeleteLoading(false)
+    if (result.error) {
+      showToast(result.error)
+      setDeleteTarget(null)
+      return
+    }
+    if (selectedRoom?.id === deleteTarget.id) setSelectedRoom(null)
+    setDeleteTarget(null)
+    showToast('Room deleted')
     await load()
   }
 
@@ -178,6 +197,12 @@ export default function HotelDetailPage() {
                           >
                             {selectedRoom?.id === room.id ? 'Hide' : 'View'} Availability
                           </button>
+                          <button
+                            onClick={() => setDeleteTarget(room)}
+                            className="px-3 py-1.5 text-xs rounded-md text-red-500 hover:bg-red-50 transition-colors"
+                          >
+                            Delete
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -285,6 +310,16 @@ export default function HotelDetailPage() {
           roomType={availRoom.roomType}
           onSave={handleSetAvailability}
           onClose={() => setAvailRoom(null)}
+        />
+      )}
+
+      {deleteTarget && (
+        <ConfirmDialog
+          title="Delete Room"
+          message={`Delete "${deleteTarget.roomType}"? This cannot be undone.`}
+          loading={deleteLoading}
+          onConfirm={handleDeleteRoom}
+          onCancel={() => setDeleteTarget(null)}
         />
       )}
 

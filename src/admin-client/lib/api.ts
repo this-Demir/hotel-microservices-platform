@@ -152,6 +152,22 @@ export async function createRoom(
   return res.json()
 }
 
+export async function deleteRoom(id: string, token?: string): Promise<{ error?: string }> {
+  if (!API_URL) {
+    await delay(300)
+    const idx = mockRooms.findIndex((r) => r.id === id)
+    if (idx !== -1) mockRooms.splice(idx, 1)
+    return {}
+  }
+  const res = await fetch(`${API_URL}/api/v1/admin/rooms/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (res.status === 409) return res.json()
+  if (!res.ok && res.status !== 204) throw new Error('Failed to delete room')
+  return {}
+}
+
 // ── Availability ─────────────────────────────────────────────────────────────
 
 export async function getAvailability(

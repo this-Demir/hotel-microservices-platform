@@ -109,6 +109,17 @@ public class HotelAdminService(
         return new RoomResponse(room.Id, room.HotelId, room.RoomType, room.BasePrice);
     }
 
+    public async Task<bool> DeleteRoomAsync(Guid id)
+    {
+        var hasReservations = await db.Reservations.AnyAsync(r => r.RoomId == id);
+        if (hasReservations) throw new InvalidOperationException("Room has active reservations and cannot be deleted.");
+        var room = await db.Rooms.FindAsync(id);
+        if (room is null) return false;
+        db.Rooms.Remove(room);
+        await db.SaveChangesAsync();
+        return true;
+    }
+
     public async Task<PagedResult<RoomResponse>> GetRoomsAsync(Guid hotelId, int page, int pageSize)
     {
         var query = db.Rooms.Where(r => r.HotelId == hotelId);
