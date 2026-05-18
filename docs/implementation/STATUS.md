@@ -29,8 +29,8 @@ All 5 .NET 9 services on Azure Container Apps, Germany West Central.
 ### Auth — real Cognito in both clients
 - Pool: `us-east-1_AhVpOfGLE`, App client: `2b6bh0kh0g31djfclhcui2881l`
 - Both clients send **ID token** (not access token) — required for `email` claim
-- Admin user: `admin@hotelbooking.com` / `Admin@Hotel2026!`
-- Test user: `demirdemirdogen@gmail.com` / `Test@1234567!` (Resend sandbox verified address)
+- Admin user: admin account (credentials in local notes)
+- Test user: Resend sandbox verified address (credentials in local notes)
 
 ### Notification pipeline — fully verified end-to-end (Session 9)
 - book → RabbitMQ `booking-events` → notification-service → Resend email ✓ + Supabase Notifications row ✓

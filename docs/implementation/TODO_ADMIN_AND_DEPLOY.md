@@ -7,7 +7,7 @@ Legend: ✅ Done | ⏳ Pending | 🔜 Next session
 
 ## Auth
 - ✅ Replace mock login with real Cognito `InitiateAuth` — both clients
-- ✅ Create admin user in Cognito (`admin@hotelbooking.com`, Admin group)
+- ✅ Create admin user in Cognito (Admin group)
 - ✅ Admin group guard in admin-client login flow
 - ✅ Both clients send ID token (not access token) — required for `email` claim
 - ⏳ Token refresh on 401 — store refresh token, call `grant_type=refresh_token` on expired token
