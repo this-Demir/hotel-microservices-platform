@@ -11,7 +11,7 @@ public class BookingEventConsumer(
     IServiceScopeFactory scopeFactory,
     ILogger<BookingEventConsumer> logger) : BackgroundService
 {
-    private const string QueueName = "booking.events";
+    private const string QueueName = "booking-events";
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
