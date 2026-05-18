@@ -103,7 +103,7 @@ Checklist of every step across all phases. Check off items as they are completed
 - [x] Query rooms below 20% capacity for next month
 - [x] Send capacity alert email via Resend for each result
 - [x] Insert `Notifications` row for each alert
-- [ ] Register EventBridge rule (nightly cron) — requires cloud deployment
+- [x] Register EventBridge rule `nightly-capacity-check` (`cron(0 1 * * ? *)`) — deployed Phase 9
 
 ---
 
@@ -151,11 +151,11 @@ Platform switched from Google Cloud Run → **Azure Container Apps** (Consumptio
 - [x] End-to-end verified: `GET /health` → 200, `GET /api/v1/search` → real Supabase data
 - [x] Add per-route rate limiting to `ocelot.Production.json` — protect OpenAI, booking, admin writes, comments
 - [x] Wire CI/CD deploy step for cron-jobs Lambda (`dotnet lambda deploy-function`)
-- [ ] Register EventBridge nightly rule for Lambda cron job
-- [ ] Deploy frontends to Vercel + set `NEXT_PUBLIC_API_URL` to api-gateway ACA URL
+- [x] Register EventBridge nightly rule for Lambda cron job — deployed Phase 9
+- [x] Deploy frontends to Vercel + set `NEXT_PUBLIC_API_URL` to api-gateway ACA URL
 - [x] Update gateway CORS: `Cors__AllowedOrigins` with both Vercel production URLs
-- [ ] Wire Cognito auth into `client` frontend (replace mock auth)
-- [ ] Wire Cognito auth into `admin-client` frontend (replace mock auth)
+- [x] Wire Cognito auth into `client` frontend (real `InitiateAuth`, ID token)
+- [x] Wire Cognito auth into `admin-client` frontend (real `InitiateAuth`, Admin group guard)
 
 ---
 
@@ -176,18 +176,60 @@ Platform switched from Google Cloud Run → **Azure Container Apps** (Consumptio
 - [x] Frontend redesigned to match CLAUDE-DESIGN spec (`/CLAUDE-DESIGN/design_handoff_stayease`)
 
 ### admin-client
-- [x] Mock auth flow (admin login with localStorage; Cognito wiring deferred to Phase 6)
+- [x] Real Cognito auth — `InitiateAuth`, Admin group check, localStorage token persistence
 - [x] Hotel list + create / edit / delete — paginated table, HotelModal, ConfirmDialog
-- [x] Room management — add rooms to a hotel (RoomModal with preset + custom types)
-- [x] Availability management — set dates, capacity, vacant status (AvailabilityModal + inline table)
+- [x] Room management — add / edit / delete rooms (RoomModal, cascade guard 409 if reservations)
+- [x] Availability management — add / delete availability windows (guard on ReservedCount > 0)
+- [x] Hotel image gallery — multi-image upload with category titles (room-interior, lobby, pool, etc.), delete UI
 
 ---
 
-## Phase 8 — Final Deliverables
+---
 
-- [ ] Live deployed URLs (all services + frontends)
-- [ ] System architecture diagram in `README.md`
-- [ ] ER diagram in `README.md`
-- [ ] Assumptions documented
-- [ ] Issues encountered documented
+## Phase 9 — Lambda, Notification E2E, Bug Fixes (2026-05-18)
+
+### 9a — Lambda + EventBridge
+- [x] Fix `aws-lambda-tools-defaults.json` runtime: `dotnet9` → `dotnet10` (AWS Lambda skips .NET 9)
+- [x] Upgrade `cron-jobs` target framework `net9.0` → `net10.0`; update CI workflow
+- [x] Create IAM execution role `lambda-capacity-checker-role` (AWSLambdaBasicExecutionRole)
+- [x] Deploy `CapacityCheckerFunction` via `dotnet lambda deploy-function` — us-east-1, 512MB, 60s
+- [x] Set Lambda env vars: `SUPABASE_CONNECTION_STRING`, `RESEND_API_KEY`, `NOTIFICATION_FROM_EMAIL`
+- [x] Create EventBridge rule `nightly-capacity-check` — `cron(0 1 * * ? *)`
+- [x] Wire Lambda as target + grant `lambda:InvokeFunction` permission
+- [x] Manual test invoke — "0 alert(s) sent", 2168ms, CloudWatch logs verified
+- [x] Set GitHub secrets: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, `LAMBDA_EXECUTION_ROLE_ARN`
+
+### 9b — Notification E2E + Bug Fixes
+- [x] **BUG FIX:** Queue name mismatch — `notification-service` listened on `booking.events`, hotel-service published to `booking-events`
+- [x] **BUG FIX:** JWT `sub` claim remapping — added `MapInboundClaims = false` to `AddJwtBearer` in hotel-service + comments-service
+- [x] **BUG FIX:** Consumer crash loop on email failure — isolated email try-catch so in-app notification always writes
+- [x] **BUG FIX:** Access token sent instead of ID token — `auth-context.tsx` `setToken(accessToken)` → `setToken(idToken)` (access token has no `email` claim)
+- [x] Set `notification-service --min-replicas 1` (background RabbitMQ worker cannot scale to zero)
+- [x] End-to-end verified: book → RabbitMQ → Resend email (200) + Supabase Notifications row written + in-app panel shows notification
+
+---
+
+## Phase 10 — Remaining Work
+
+### 10a — Bug Fixes (Next)
+- [ ] **Image upload 500** — admin image upload broken; likely Ocelot multipart forwarding or wrong Content-Type in frontend FormData
+- [ ] **Lambda AdminEmail** — test hotel has empty `AdminEmail`; capacity alerts never fire; also `InsertNotificationAsync` sets `UserId = AdminEmail` (should be Cognito `sub`)
+
+### 10b — Frontend Features
+- [ ] My Bookings page — list user reservations (hotel name, dates, price, status)
+- [ ] My Account page — display profile info (name, email from Cognito JWT claims)
+- [ ] Show on Map — strictly required by course spec; hotel pins on interactive map
+- [ ] Member discount badge — show original + discounted price in search results when signed in
+- [ ] Error toasts + loading states + skeleton screens across all flows
+- [ ] General polish — make it feel like a complete website
+
+### 10c — Architecture Cleanup
+- [ ] Repository layer — move all DB calls from service classes into dedicated repository classes
+- [ ] Custom typed exceptions — e.g. `RoomNotAvailableException`, `HotelNotFoundException` instead of `InvalidOperationException`
+- [ ] Input validation — backend DTO validation (FluentValidation or DataAnnotations); frontend form validation
+
+### 10d — Final Deliverables
+- [ ] `docker-compose.yml` — remove obsolete `version: "3.9"` line
+- [ ] Full end-to-end smoke test (all flows)
+- [ ] `README.md` — live URLs, architecture diagram, ER diagrams, assumptions, known issues
 - [ ] 5-minute demo video recorded and linked
