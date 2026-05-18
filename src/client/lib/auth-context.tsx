@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('se_refresh', refreshToken)
     localStorage.setItem('se_id', idToken)
     const claims = parseJwt(idToken)
-    setToken(accessToken)
+    setToken(idToken)
     setUser({
       name: (claims?.name as string) ?? (claims?.email as string) ?? '',
       email: (claims?.email as string) ?? '',
