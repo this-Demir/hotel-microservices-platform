@@ -106,7 +106,12 @@ public class HotelAdminService(
 
         var http = httpClientFactory.CreateClient();
         var response = await http.SendAsync(req);
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = await response.Content.ReadAsStringAsync();
+            throw new InvalidOperationException(
+                $"Supabase storage upload failed ({(int)response.StatusCode}): {body}");
+        }
 
         var imageUrl = $"{supabaseUrl}/storage/v1/object/public/{bucket}/{objectPath}";
 

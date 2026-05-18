@@ -55,7 +55,9 @@ public class AdminController(IHotelAdminService adminService) : ControllerBase
             return Ok(image);
         }
         catch (KeyNotFoundException) { return NotFound(); }
-        catch (FormatException) { return BadRequest("Invalid base64 file data."); }
+        catch (FormatException ex) { return BadRequest($"Invalid base64 file data: {ex.Message}"); }
+        catch (InvalidOperationException ex) { return StatusCode(502, new { error = ex.Message }); }
+        catch (Exception ex) { return StatusCode(500, new { error = ex.Message }); }
     }
 
     [HttpDelete("hotels/{hotelId:guid}/images/{imageId:guid}")]
