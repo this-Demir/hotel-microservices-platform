@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import AdminShell from '@/components/AdminShell'
 import RoomModal from '@/components/RoomModal'
 import AvailabilityModal from '@/components/AvailabilityModal'
-import { getHotel, getRooms, createRoom, updateRoom, deleteRoom, getAvailability, setAvailability } from '@/lib/api'
+import { getHotel, getRooms, createRoom, updateRoom, deleteRoom, getAvailability, setAvailability, deleteAvailability } from '@/lib/api'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { useAuth } from '@/lib/auth-context'
 import type {
@@ -35,6 +35,8 @@ export default function HotelDetailPage() {
   const [availRoom, setAvailRoom] = useState<RoomResponse | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<RoomResponse | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
+  const [deleteAvailTarget, setDeleteAvailTarget] = useState<AvailabilityResponse | null>(null)
+  const [deleteAvailLoading, setDeleteAvailLoading] = useState(false)
   const [toast, setToast] = useState('')
 
   function showToast(msg: string) {
@@ -95,6 +97,26 @@ export default function HotelDetailPage() {
     setDeleteTarget(null)
     showToast('Room deleted')
     await load()
+  }
+
+  async function handleDeleteAvailability() {
+    if (!deleteAvailTarget) return
+    setDeleteAvailLoading(true)
+    const result = await deleteAvailability(deleteAvailTarget.id, token)
+    setDeleteAvailLoading(false)
+    if (result.error) {
+      showToast(result.error)
+      setDeleteAvailTarget(null)
+      return
+    }
+    setDeleteAvailTarget(null)
+    showToast('Availability deleted')
+    if (selectedRoom) {
+      setAvailLoading(true)
+      const avail = await getAvailability(selectedRoom.id, token)
+      setAvailabilityList(avail)
+      setAvailLoading(false)
+    }
   }
 
   async function handleSetAvailability(data: SetAvailabilityRequest) {
@@ -267,7 +289,8 @@ export default function HotelDetailPage() {
                       <th className="pb-3 text-xs font-semibold text-gray-500 uppercase tracking-wide pr-6">End Date</th>
                       <th className="pb-3 text-xs font-semibold text-gray-500 uppercase tracking-wide pr-6">Status</th>
                       <th className="pb-3 text-xs font-semibold text-gray-500 uppercase tracking-wide pr-6">Capacity</th>
-                      <th className="pb-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Reserved</th>
+                      <th className="pb-3 text-xs font-semibold text-gray-500 uppercase tracking-wide pr-6">Reserved</th>
+                      <th className="pb-3" />
                     </tr>
                   </thead>
                   <tbody>
@@ -287,7 +310,7 @@ export default function HotelDetailPage() {
                           </span>
                         </td>
                         <td className="py-2.5 pr-6 text-gray-700">{a.totalCapacity}</td>
-                        <td className="py-2.5">
+                        <td className="py-2.5 pr-6">
                           <span
                             className={
                               a.reservedCount >= a.totalCapacity
@@ -297,6 +320,14 @@ export default function HotelDetailPage() {
                           >
                             {a.reservedCount}
                           </span>
+                        </td>
+                        <td className="py-2.5 text-right">
+                          <button
+                            onClick={() => setDeleteAvailTarget(a)}
+                            className="px-2.5 py-1 text-xs rounded-md border border-red-300 text-red-600 hover:bg-red-50 transition-colors font-medium"
+                          >
+                            Delete
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -333,6 +364,16 @@ export default function HotelDetailPage() {
           loading={deleteLoading}
           onConfirm={handleDeleteRoom}
           onCancel={() => setDeleteTarget(null)}
+        />
+      )}
+
+      {deleteAvailTarget && (
+        <ConfirmDialog
+          title="Delete Availability"
+          message={`Delete availability ${deleteAvailTarget.startDate} → ${deleteAvailTarget.endDate}? This cannot be undone.`}
+          loading={deleteAvailLoading}
+          onConfirm={handleDeleteAvailability}
+          onCancel={() => setDeleteAvailTarget(null)}
         />
       )}
 

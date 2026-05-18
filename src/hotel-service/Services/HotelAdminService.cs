@@ -187,6 +187,17 @@ public class HotelAdminService(
             existing.IsVacant, existing.TotalCapacity, existing.ReservedCount);
     }
 
+    public async Task<bool> DeleteAvailabilityAsync(Guid id)
+    {
+        var avail = await db.RoomAvailabilities.FindAsync(id);
+        if (avail is null) return false;
+        if (avail.ReservedCount > 0)
+            throw new InvalidOperationException("Availability window has active reservations and cannot be deleted.");
+        db.RoomAvailabilities.Remove(avail);
+        await db.SaveChangesAsync();
+        return true;
+    }
+
     private static HotelResponse ToResponse(Hotel h) =>
         new(h.Id, h.Name, h.LocationPoint, h.Description, h.AdminEmail, h.ImageUrl);
 }

@@ -208,6 +208,22 @@ export async function getAvailability(
   return res.json()
 }
 
+export async function deleteAvailability(id: string, token?: string): Promise<{ error?: string }> {
+  if (!API_URL) {
+    await delay(300)
+    const idx = mockAvailability.findIndex((a) => a.id === id)
+    if (idx !== -1) mockAvailability.splice(idx, 1)
+    return {}
+  }
+  const res = await fetch(`${API_URL}/api/v1/admin/availability/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (res.status === 409) return res.json()
+  if (!res.ok && res.status !== 204) throw new Error('Failed to delete availability')
+  return {}
+}
+
 export async function setAvailability(
   data: SetAvailabilityRequest,
   token?: string,
