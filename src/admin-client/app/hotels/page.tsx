@@ -118,19 +118,19 @@ export default function HotelsPage() {
                       <div className="flex items-center gap-1 justify-end">
                         <Link
                           href={`/hotels/${h.id}`}
-                          className="px-3 py-1.5 text-xs rounded-md text-indigo-600 hover:bg-indigo-50 transition-colors font-medium"
+                          className="px-3 py-1.5 text-xs rounded-md border border-indigo-300 text-indigo-700 hover:bg-indigo-50 transition-colors font-medium"
                         >
                           Rooms
                         </Link>
                         <button
                           onClick={() => setHotelModal(h)}
-                          className="px-3 py-1.5 text-xs rounded-md text-gray-600 hover:bg-gray-100 transition-colors"
+                          className="px-3 py-1.5 text-xs rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors font-medium"
                         >
                           Edit
                         </button>
                         <button
                           onClick={() => setDeleteTarget(h)}
-                          className="px-3 py-1.5 text-xs rounded-md text-red-500 hover:bg-red-50 transition-colors"
+                          className="px-3 py-1.5 text-xs rounded-md border border-red-300 text-red-600 hover:bg-red-50 transition-colors font-medium"
                         >
                           Delete
                         </button>

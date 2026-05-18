@@ -7,6 +7,7 @@ public record HotelResponse(Guid Id, string Name, string LocationPoint, string D
 
 // Rooms
 public record CreateRoomRequest(Guid HotelId, string RoomType, decimal BasePrice);
+public record UpdateRoomRequest(string RoomType, decimal BasePrice);
 public record RoomResponse(Guid Id, Guid HotelId, string RoomType, decimal BasePrice);
 
 // Availability

@@ -1,20 +1,26 @@
 'use client'
 
 import { useState } from 'react'
-import type { CreateRoomRequest } from '@/lib/types'
+import type { CreateRoomRequest, RoomResponse } from '@/lib/types'
 
 const PRESET_TYPES = ['Standard', 'Deluxe', 'Suite', 'Executive', 'Garden Villa', 'Pool Suite', 'Penthouse', 'Studio']
 
 interface Props {
   hotelId: string
+  room?: RoomResponse
   onSave: (data: CreateRoomRequest) => Promise<void>
   onClose: () => void
 }
 
-export default function RoomModal({ hotelId, onSave, onClose }: Props) {
-  const [roomType, setRoomType] = useState('')
-  const [customType, setCustomType] = useState('')
-  const [basePrice, setBasePrice] = useState('')
+function initialType(room?: RoomResponse) {
+  if (!room) return ''
+  return PRESET_TYPES.includes(room.roomType) ? room.roomType : '__custom'
+}
+
+export default function RoomModal({ hotelId, room, onSave, onClose }: Props) {
+  const [roomType, setRoomType] = useState(initialType(room))
+  const [customType, setCustomType] = useState(room && !PRESET_TYPES.includes(room.roomType) ? room.roomType : '')
+  const [basePrice, setBasePrice] = useState(room ? String(room.basePrice) : '')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -45,7 +51,7 @@ export default function RoomModal({ hotelId, onSave, onClose }: Props) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-sm">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="font-semibold text-gray-900">Add Room</h2>
+          <h2 className="font-semibold text-gray-900">{room ? 'Edit Room' : 'Add Room'}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
         </div>
 
@@ -107,7 +113,7 @@ export default function RoomModal({ hotelId, onSave, onClose }: Props) {
               disabled={loading}
               className="flex-1 px-4 py-2 text-sm rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors font-medium"
             >
-              {loading ? 'Saving…' : 'Add Room'}
+              {loading ? 'Saving…' : room ? 'Save Changes' : 'Add Room'}
             </button>
           </div>
         </form>

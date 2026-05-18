@@ -109,6 +109,16 @@ public class HotelAdminService(
         return new RoomResponse(room.Id, room.HotelId, room.RoomType, room.BasePrice);
     }
 
+    public async Task<RoomResponse?> UpdateRoomAsync(Guid id, UpdateRoomRequest request)
+    {
+        var room = await db.Rooms.FindAsync(id);
+        if (room is null) return null;
+        room.RoomType = request.RoomType;
+        room.BasePrice = request.BasePrice;
+        await db.SaveChangesAsync();
+        return new RoomResponse(room.Id, room.HotelId, room.RoomType, room.BasePrice);
+    }
+
     public async Task<bool> DeleteRoomAsync(Guid id)
     {
         var hasReservations = await db.Reservations.AnyAsync(r => r.RoomId == id);

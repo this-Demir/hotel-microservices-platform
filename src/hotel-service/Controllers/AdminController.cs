@@ -57,6 +57,13 @@ public class AdminController(IHotelAdminService adminService) : ControllerBase
     public async Task<IActionResult> CreateRoom([FromBody] CreateRoomRequest request)
         => Ok(await adminService.CreateRoomAsync(request));
 
+    [HttpPut("rooms/{id:guid}")]
+    public async Task<IActionResult> UpdateRoom(Guid id, [FromBody] UpdateRoomRequest request)
+    {
+        var room = await adminService.UpdateRoomAsync(id, request);
+        return room is null ? NotFound() : Ok(room);
+    }
+
     [HttpDelete("rooms/{id:guid}")]
     public async Task<IActionResult> DeleteRoom(Guid id)
     {

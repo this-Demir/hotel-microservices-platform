@@ -4,6 +4,7 @@ import type {
   UpdateHotelRequest,
   RoomResponse,
   CreateRoomRequest,
+  UpdateRoomRequest,
   AvailabilityResponse,
   SetAvailabilityRequest,
   PagedResult,
@@ -149,6 +150,28 @@ export async function createRoom(
     body: JSON.stringify(data),
   })
   if (!res.ok) throw new Error('Failed to create room')
+  return res.json()
+}
+
+export async function updateRoom(
+  id: string,
+  data: UpdateRoomRequest,
+  token?: string,
+): Promise<RoomResponse | null> {
+  if (!API_URL) {
+    await delay(400)
+    const idx = mockRooms.findIndex((r) => r.id === id)
+    if (idx === -1) return null
+    mockRooms[idx] = { ...mockRooms[idx], ...data }
+    return mockRooms[idx]
+  }
+  const res = await fetch(`${API_URL}/api/v1/admin/rooms/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(data),
+  })
+  if (res.status === 404) return null
+  if (!res.ok) throw new Error('Failed to update room')
   return res.json()
 }
 

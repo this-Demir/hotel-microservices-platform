@@ -13,6 +13,7 @@ public interface IHotelAdminService
     Task<HotelResponse?> UploadHotelImageAsync(Guid id, IFormFile file);
 
     Task<RoomResponse> CreateRoomAsync(CreateRoomRequest request);
+    Task<RoomResponse?> UpdateRoomAsync(Guid id, UpdateRoomRequest request);
     Task<bool> DeleteRoomAsync(Guid id);
     Task<PagedResult<RoomResponse>> GetRoomsAsync(Guid hotelId, int page, int pageSize);
     Task<IEnumerable<AvailabilityResponse>> GetAvailabilityAsync(Guid roomId);

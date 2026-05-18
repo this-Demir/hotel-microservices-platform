@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import AdminShell from '@/components/AdminShell'
 import RoomModal from '@/components/RoomModal'
 import AvailabilityModal from '@/components/AvailabilityModal'
-import { getHotel, getRooms, createRoom, deleteRoom, getAvailability, setAvailability } from '@/lib/api'
+import { getHotel, getRooms, createRoom, updateRoom, deleteRoom, getAvailability, setAvailability } from '@/lib/api'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { useAuth } from '@/lib/auth-context'
 import type {
@@ -13,6 +13,7 @@ import type {
   RoomResponse,
   AvailabilityResponse,
   CreateRoomRequest,
+  UpdateRoomRequest,
   SetAvailabilityRequest,
 } from '@/lib/types'
 
@@ -30,7 +31,7 @@ export default function HotelDetailPage() {
   const [availability, setAvailabilityList] = useState<AvailabilityResponse[]>([])
   const [availLoading, setAvailLoading] = useState(false)
 
-  const [showRoomModal, setShowRoomModal] = useState(false)
+  const [roomModal, setRoomModal] = useState<RoomResponse | null | false>(false)
   const [availRoom, setAvailRoom] = useState<RoomResponse | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<RoomResponse | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
@@ -68,10 +69,15 @@ export default function HotelDetailPage() {
     setAvailLoading(false)
   }
 
-  async function handleAddRoom(data: CreateRoomRequest) {
-    await createRoom(data, token)
-    showToast('Room added')
-    setShowRoomModal(false)
+  async function handleSaveRoom(data: CreateRoomRequest) {
+    if (roomModal) {
+      await updateRoom((roomModal as RoomResponse).id, data as UpdateRoomRequest, token)
+      showToast('Room updated')
+    } else {
+      await createRoom(data, token)
+      showToast('Room added')
+    }
+    setRoomModal(false)
     await load()
   }
 
@@ -146,7 +152,7 @@ export default function HotelDetailPage() {
               <span className="text-gray-400 font-normal text-sm">({rooms.length})</span>
             </h2>
             <button
-              onClick={() => setShowRoomModal(true)}
+              onClick={() => setRoomModal(null)}
               className="px-3 py-1.5 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
             >
               + Add Room
@@ -182,24 +188,30 @@ export default function HotelDetailPage() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1 justify-end">
                           <button
+                            onClick={() => setRoomModal(room)}
+                            className="px-3 py-1.5 text-xs rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors font-medium"
+                          >
+                            Edit
+                          </button>
+                          <button
                             onClick={() => { setAvailRoom(room) }}
-                            className="px-3 py-1.5 text-xs rounded-md text-indigo-600 hover:bg-indigo-50 transition-colors font-medium"
+                            className="px-3 py-1.5 text-xs rounded-md border border-indigo-300 text-indigo-700 hover:bg-indigo-50 transition-colors font-medium"
                           >
                             Set Availability
                           </button>
                           <button
                             onClick={() => handleSelectRoom(room)}
-                            className={`px-3 py-1.5 text-xs rounded-md transition-colors font-medium ${
+                            className={`px-3 py-1.5 text-xs rounded-md border transition-colors font-medium ${
                               selectedRoom?.id === room.id
-                                ? 'bg-gray-200 text-gray-800'
-                                : 'text-gray-600 hover:bg-gray-100'
+                                ? 'bg-gray-200 border-gray-300 text-gray-800'
+                                : 'border-gray-300 text-gray-700 hover:bg-gray-100'
                             }`}
                           >
                             {selectedRoom?.id === room.id ? 'Hide' : 'View'} Availability
                           </button>
                           <button
                             onClick={() => setDeleteTarget(room)}
-                            className="px-3 py-1.5 text-xs rounded-md text-red-500 hover:bg-red-50 transition-colors"
+                            className="px-3 py-1.5 text-xs rounded-md border border-red-300 text-red-600 hover:bg-red-50 transition-colors font-medium"
                           >
                             Delete
                           </button>
@@ -296,11 +308,12 @@ export default function HotelDetailPage() {
         )}
       </div>
 
-      {showRoomModal && (
+      {roomModal !== false && (
         <RoomModal
           hotelId={id}
-          onSave={handleAddRoom}
-          onClose={() => setShowRoomModal(false)}
+          room={roomModal ?? undefined}
+          onSave={handleSaveRoom}
+          onClose={() => setRoomModal(false)}
         />
       )}
 

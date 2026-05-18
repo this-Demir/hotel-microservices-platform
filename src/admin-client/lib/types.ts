@@ -29,6 +29,11 @@ export interface CreateRoomRequest {
   basePrice: number
 }
 
+export interface UpdateRoomRequest {
+  roomType: string
+  basePrice: number
+}
+
 export interface AvailabilityResponse {
   id: string
   roomId: string
