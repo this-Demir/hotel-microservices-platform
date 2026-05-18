@@ -93,4 +93,5 @@ jobs:
           az containerapp update \
             --name ${{ env.ACA_APP }} \
             --resource-group ${{ env.ACA_RG }} \
-            --image ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            --image ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            --set-env-vars "Cors__AllowedOrigins=https://hotel-admin-client.vercel.app,https://hotel-booking-client.vercel.app,http://localhost:3000,http://localhost:3001"

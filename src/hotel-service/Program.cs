@@ -79,4 +79,18 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapGet("/health", () => Results.Ok("healthy"));
 
+// Warm up Redis connection immediately so the first search request hits cache
+app.Lifetime.ApplicationStarted.Register(() =>
+{
+    _ = Task.Run(async () =>
+    {
+        try
+        {
+            var mux = app.Services.GetRequiredService<IConnectionMultiplexer>();
+            await mux.GetDatabase().PingAsync();
+        }
+        catch { }
+    });
+});
+
 app.Run();
