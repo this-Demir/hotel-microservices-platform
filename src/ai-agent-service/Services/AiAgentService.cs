@@ -47,11 +47,25 @@ public class AgentService(OpenAIClient openAIClient, IHttpClientFactory httpClie
         var messages = new List<ChatMessage>
         {
             ChatMessage.CreateSystemMessage(
-                "You are a helpful hotel booking assistant. " +
-                "Use the available tools to search for hotels and make bookings on behalf of the user. " +
-                "Always confirm key details before booking."),
-            ChatMessage.CreateUserMessage(request.Message),
+                $"You are StayEase, a hotel booking assistant. Today's date is {DateTime.UtcNow:yyyy-MM-dd}. " +
+                $"Your ONLY purpose is to help users search for hotels and make bookings. " +
+                $"You have two tools: search_hotels and book_hotel. Use them to fulfill requests. " +
+                $"Always use the current year when interpreting dates unless the user specifies otherwise. " +
+                $"Always confirm check-in, check-out, guest count, and price before booking. " +
+                $"If the user asks ANYTHING unrelated to hotels, travel, or bookings — such as coding questions, " +
+                $"general knowledge, math, or any other topic — respond ONLY with: " +
+                $"'I'm a hotel booking assistant. I can only help you search and book hotels.' " +
+                $"Do not answer off-topic questions under any circumstances."),
         };
+
+        foreach (var h in request.History ?? [])
+        {
+            messages.Add(h.Role == "user"
+                ? ChatMessage.CreateUserMessage(h.Content)
+                : ChatMessage.CreateAssistantMessage(h.Content));
+        }
+
+        messages.Add(ChatMessage.CreateUserMessage(request.Message));
 
         var options = new ChatCompletionOptions();
         options.Tools.Add(SearchTool);

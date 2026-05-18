@@ -49,13 +49,15 @@ export function ChatWidget() {
     const t = text.trim()
     if (!t || !token || thinking) return
     setText('')
+    const history = messages
     setMessages((m) => [...m, { role: 'user', content: t }])
     setThinking(true)
     try {
-      const res = await chatWithAgent(t, token)
+      const res = await chatWithAgent(t, token, history)
       setMessages((m) => [...m, { role: 'assistant', content: res.reply }])
-    } catch {
-      setMessages((m) => [...m, { role: 'assistant', content: 'Sorry, I ran into an issue. Please try again.' }])
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Something went wrong. Please try again.'
+      setMessages((m) => [...m, { role: 'assistant', content: msg }])
     } finally {
       setThinking(false)
     }
@@ -122,9 +124,10 @@ export function ChatWidget() {
             <div className="flex items-center gap-2">
               <input
                 value={text}
-                onChange={(e) => setText(e.target.value)}
+                onChange={(e) => setText(e.target.value.slice(0, 500))}
                 onKeyDown={(e) => e.key === 'Enter' && send()}
                 placeholder="Ask about a destination…"
+                maxLength={500}
                 className="flex-1 px-4 py-2.5 rounded-full bg-slate-100 outline-none text-sm focus:bg-white focus:ring-2 focus:ring-indigo-200 transition"
               />
               <button

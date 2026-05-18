@@ -148,7 +148,7 @@ export async function getHotelById(hotelId: string): Promise<MockHotel | null> {
   return { ...data, starRating: data.starRating ?? 0, reviews: data.reviews ?? [] }
 }
 
-export async function chatWithAgent(message: string, token: string): Promise<ChatResponse> {
+export async function chatWithAgent(message: string, token: string, history: ChatMessage[] = []): Promise<ChatResponse> {
   if (!API_URL) {
     await delay(900)
     const m = message.toLowerCase()
@@ -164,8 +164,11 @@ export async function chatWithAgent(message: string, token: string): Promise<Cha
   const res = await fetch(`${API_URL}/api/v1/agent/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({ message, history }),
   })
-  if (!res.ok) throw new Error('Chat request failed')
+  if (!res.ok) {
+    const body = await res.json().catch(() => null)
+    throw new Error(body?.error ?? 'Something went wrong. Please try again.')
+  }
   return res.json()
 }
