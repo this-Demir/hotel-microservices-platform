@@ -45,8 +45,18 @@ export interface NotificationResponse {
   createdAt: string
 }
 
+export interface AgentSearchPayload {
+  checkIn: string
+  checkOut: string
+  guestCount: number
+  items: SearchResultItem[]
+  totalCount: number
+}
+
 export interface ChatResponse {
   reply: string
+  structuredType?: 'search_results'
+  structuredData?: string
 }
 
 export interface PagedResult<T> {
@@ -93,4 +103,6 @@ export interface MockCity {
 export interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
+  structuredType?: 'search_results'
+  structuredData?: AgentSearchPayload
 }

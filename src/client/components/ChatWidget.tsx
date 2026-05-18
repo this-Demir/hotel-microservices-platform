@@ -1,13 +1,15 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { chatWithAgent, getInitialChatHistory } from '@/lib/api'
+import { chatWithAgent, getInitialChatHistory, bookRoom } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
-import type { ChatMessage } from '@/lib/types'
+import type { ChatMessage, AgentSearchPayload, SearchResultItem } from '@/lib/types'
 
 function cn(...xs: (string | false | undefined | null)[]) {
   return xs.filter(Boolean).join(' ')
 }
+
+// ── Icons ─────────────────────────────────────────────────────────────────────
 
 const ChatIcon = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -39,8 +41,13 @@ const UsersIcon = ({ className }: { className?: string }) => (
     <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
   </svg>
 )
+const StarIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <path d="m12 2 3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.56 5.82 22 7 14.14l-5-4.87 6.91-1.01L12 2z" />
+  </svg>
+)
 
-// ── Booking card detection ────────────────────────────────────────────────────
+// ── Booking card ──────────────────────────────────────────────────────────────
 
 interface BookingInfo {
   hotel: string
@@ -66,7 +73,7 @@ function extractBooking(content: string): BookingInfo | null {
     roomType: get('Room\\s+Type'),
     checkIn: get('Check-?in(?:\\s+Date)?'),
     checkOut: get('Check-?out(?:\\s+Date)?'),
-    guests: get('Guests?'),
+    guests: get('Guests?(?:\\s+Count)?'),
     price: get('(?:Total\\s+)?Price(?:\\s+Paid)?'),
     reservationId,
   }
@@ -115,7 +122,110 @@ function BookingCard({ b }: { b: BookingInfo }) {
   )
 }
 
-// ── Inline markdown renderer ──────────────────────────────────────────────────
+// ── Inline hotel room card ─────────────────────────────────────────────────────
+
+function fmtPrice(n: number) {
+  return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+function fmtDate(iso: string) {
+  const d = new Date(iso + 'T00:00:00')
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+function nightsBetween(checkIn: string, checkOut: string) {
+  const d1 = new Date(checkIn + 'T00:00:00')
+  const d2 = new Date(checkOut + 'T00:00:00')
+  return Math.max(1, Math.round((d2.getTime() - d1.getTime()) / 86400000))
+}
+
+interface ChatRoomCardProps {
+  item: SearchResultItem
+  checkIn: string
+  checkOut: string
+  guestCount: number
+  onBookNow: () => void
+  booking: boolean
+}
+
+function ChatRoomCard({ item, checkIn, checkOut, onBookNow, booking }: ChatRoomCardProps) {
+  const stars = item.starRating ?? 4
+  const imageUrl = item.hotelImageUrl ?? `https://picsum.photos/seed/${item.hotelId}/400/300`
+  const nights = nightsBetween(checkIn, checkOut)
+  const total = item.price * nights
+
+  return (
+    <div className="bg-white rounded-xl ring-1 ring-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex gap-0">
+        {/* Image */}
+        <div className="w-[72px] shrink-0 overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={imageUrl} alt="" className="w-full h-full object-cover" />
+        </div>
+        {/* Content */}
+        <div className="flex-1 p-2.5 min-w-0">
+          <div className="flex items-start justify-between gap-1">
+            <div className="min-w-0">
+              <div className="font-bold text-slate-900 text-xs truncate">{item.hotelName}</div>
+              <div className="text-slate-500 text-[11px]">{item.roomType}</div>
+            </div>
+            <div className="flex items-center gap-0.5 shrink-0">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <StarIcon key={i} className={cn('w-2.5 h-2.5', i < stars ? 'text-amber-400' : 'text-slate-200')} />
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center justify-between mt-2">
+            <div>
+              <span className="font-bold text-slate-900 text-sm">{fmtPrice(item.price)}</span>
+              <span className="text-slate-400 text-[10px] ml-0.5">/night</span>
+              <div className="text-[10px] text-slate-500">{nights}n · {fmtPrice(total)} total</div>
+            </div>
+            <button
+              onClick={onBookNow}
+              disabled={booking}
+              className="px-3 py-1.5 rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-[11px] font-semibold transition shrink-0"
+            >
+              {booking ? 'Booking…' : 'Book Now'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Search results block ───────────────────────────────────────────────────────
+
+interface SearchResultsBlockProps {
+  data: AgentSearchPayload
+  onBookNow: (item: SearchResultItem) => void
+  bookingRoomId: string | null
+}
+
+function SearchResultsBlock({ data, onBookNow, bookingRoomId }: SearchResultsBlockProps) {
+  if (!data.items.length) return null
+  return (
+    <div className="w-full space-y-2 mt-1">
+      <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wide px-0.5">
+        {data.items.length} room{data.items.length !== 1 ? 's' : ''} found · {fmtDate(data.checkIn)} – {fmtDate(data.checkOut)} · {data.guestCount} guest{data.guestCount !== 1 ? 's' : ''}
+      </div>
+      {data.items.map((item) => (
+        <ChatRoomCard
+          key={item.roomId}
+          item={item}
+          checkIn={data.checkIn}
+          checkOut={data.checkOut}
+          guestCount={data.guestCount}
+          onBookNow={() => onBookNow(item)}
+          booking={bookingRoomId === item.roomId}
+        />
+      ))}
+    </div>
+  )
+}
+
+// ── Markdown renderer ─────────────────────────────────────────────────────────
 
 function boldify(text: string) {
   const parts = text.split(/\*\*(.+?)\*\*/)
@@ -169,7 +279,13 @@ function Markdown({ text }: { text: string }) {
 
 // ── Message bubble ────────────────────────────────────────────────────────────
 
-function MessageBubble({ msg }: { msg: ChatMessage }) {
+interface MessageBubbleProps {
+  msg: ChatMessage
+  onBookNow: (item: SearchResultItem, payload: AgentSearchPayload) => void
+  bookingRoomId: string | null
+}
+
+function MessageBubble({ msg, onBookNow, bookingRoomId }: MessageBubbleProps) {
   if (msg.role === 'user') {
     return (
       <div className="flex justify-end">
@@ -185,6 +301,25 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
     return (
       <div className="flex justify-start">
         <BookingCard b={booking} />
+      </div>
+    )
+  }
+
+  if (msg.structuredType === 'search_results' && msg.structuredData) {
+    return (
+      <div className="flex flex-col gap-2 items-start w-full">
+        {msg.content && (
+          <div className="max-w-[88%] px-3.5 py-2.5 rounded-2xl bg-white text-slate-800 ring-1 ring-slate-200 rounded-bl-md">
+            <Markdown text={msg.content} />
+          </div>
+        )}
+        <div className="w-full pr-2">
+          <SearchResultsBlock
+            data={msg.structuredData}
+            onBookNow={(item) => onBookNow(item, msg.structuredData!)}
+            bookingRoomId={bookingRoomId}
+          />
+        </div>
       </div>
     )
   }
@@ -206,6 +341,7 @@ export function ChatWidget() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [text, setText] = useState('')
   const [thinking, setThinking] = useState(false)
+  const [bookingRoomId, setBookingRoomId] = useState<string | null>(null)
   const scroller = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -229,12 +365,53 @@ export function ChatWidget() {
     setThinking(true)
     try {
       const res = await chatWithAgent(t, token, history)
-      setMessages((m) => [...m, { role: 'assistant', content: res.reply }])
+      const msg: ChatMessage = { role: 'assistant', content: res.reply }
+      if (res.structuredType === 'search_results' && res.structuredData) {
+        try {
+          msg.structuredType = 'search_results'
+          msg.structuredData = JSON.parse(res.structuredData) as AgentSearchPayload
+        } catch { /* ignore parse errors */ }
+      }
+      setMessages((m) => [...m, msg])
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Something went wrong. Please try again.'
-      setMessages((m) => [...m, { role: 'assistant', content: msg }])
+      const errMsg = err instanceof Error ? err.message : 'Something went wrong. Please try again.'
+      setMessages((m) => [...m, { role: 'assistant', content: errMsg }])
     } finally {
       setThinking(false)
+    }
+  }
+
+  const handleBookNow = async (item: SearchResultItem, payload: AgentSearchPayload) => {
+    if (!token || bookingRoomId) return
+    setBookingRoomId(item.roomId)
+
+    const userMsg = `Book the ${item.roomType} room at ${item.hotelName}`
+    setMessages((m) => [...m, { role: 'user', content: userMsg }])
+
+    try {
+      const nights = nightsBetween(payload.checkIn, payload.checkOut)
+      const result = await bookRoom(
+        { roomId: item.roomId, checkIn: payload.checkIn, checkOut: payload.checkOut, guestCount: payload.guestCount },
+        token
+      )
+      const checkInFmt = fmtDate(payload.checkIn)
+      const checkOutFmt = fmtDate(payload.checkOut)
+      const total = fmtPrice((result.pricePaid ?? item.price) * nights)
+      const confirmText =
+        `Your booking at ${item.hotelName} has been confirmed!\n\n` +
+        `Hotel Name: ${item.hotelName}\n` +
+        `Room Type: ${item.roomType}\n` +
+        `Check-in Date: ${checkInFmt}\n` +
+        `Check-out Date: ${checkOutFmt}\n` +
+        `Guests Count: ${payload.guestCount}\n` +
+        `Total Price: ${total}\n` +
+        `Reservation ID: ${result.reservationId}`
+      setMessages((m) => [...m, { role: 'assistant', content: confirmText }])
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : 'Booking failed. Please try again.'
+      setMessages((m) => [...m, { role: 'assistant', content: errMsg }])
+    } finally {
+      setBookingRoomId(null)
     }
   }
 
@@ -250,8 +427,8 @@ export function ChatWidget() {
       </button>
 
       {open && (
-        <div className="fixed bottom-24 right-6 z-30 w-[400px] h-[560px] max-h-[80vh] bg-white rounded-3xl shadow-2xl ring-1 ring-slate-200 flex flex-col overflow-hidden animate-slide-up">
-          <div className="p-4 border-b border-slate-100 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white">
+        <div className="fixed bottom-24 right-6 z-30 w-[400px] h-[580px] max-h-[80vh] bg-white rounded-3xl shadow-2xl ring-1 ring-slate-200 flex flex-col overflow-hidden animate-slide-up">
+          <div className="p-4 border-b border-slate-100 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shrink-0">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-full bg-white/20 grid place-items-center">
                 <ChatIcon className="w-4 h-4" />
@@ -267,7 +444,14 @@ export function ChatWidget() {
           </div>
 
           <div ref={scroller} className="flex-1 overflow-y-auto nice-scroll p-4 space-y-3 bg-slate-50/50">
-            {messages.map((m, i) => <MessageBubble key={i} msg={m} />)}
+            {messages.map((m, i) => (
+              <MessageBubble
+                key={i}
+                msg={m}
+                onBookNow={handleBookNow}
+                bookingRoomId={bookingRoomId}
+              />
+            ))}
             {thinking && (
               <div className="flex justify-start">
                 <div className="bg-white text-slate-800 ring-1 ring-slate-200 rounded-2xl rounded-bl-md px-3.5 py-3 flex gap-1">
@@ -279,7 +463,7 @@ export function ChatWidget() {
             )}
           </div>
 
-          <div className="p-3 border-t border-slate-100 bg-white">
+          <div className="p-3 border-t border-slate-100 bg-white shrink-0">
             <div className="flex items-center gap-2">
               <input
                 value={text}

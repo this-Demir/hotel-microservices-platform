@@ -51,7 +51,8 @@ public class AgentService(OpenAIClient openAIClient, IHttpClientFactory httpClie
                 $"Your ONLY purpose is to help users search for hotels and make bookings. " +
                 $"You have two tools: search_hotels and book_hotel. Use them to fulfill requests. " +
                 $"Always use the current year when interpreting dates unless the user specifies otherwise. " +
-                $"Always confirm check-in, check-out, guest count, and price before booking. " +
+                $"When search results are shown to the user as interactive cards, they can book directly — " +
+                $"do NOT ask them to confirm again if they already clicked Book Now. " +
                 $"If the user asks ANYTHING unrelated to hotels, travel, or bookings — such as coding questions, " +
                 $"general knowledge, math, or any other topic — respond ONLY with: " +
                 $"'I'm a hotel booking assistant. I can only help you search and book hotels.' " +
@@ -71,6 +72,11 @@ public class AgentService(OpenAIClient openAIClient, IHttpClientFactory httpClie
         options.Tools.Add(SearchTool);
         options.Tools.Add(BookTool);
 
+        string? lastSearchResultJson = null;
+        string? lastSearchCheckIn = null;
+        string? lastSearchCheckOut = null;
+        int lastSearchGuestCount = 0;
+
         while (true)
         {
             var completion = await chatClient.CompleteChatAsync(messages, options);
@@ -84,11 +90,43 @@ public class AgentService(OpenAIClient openAIClient, IHttpClientFactory httpClie
                 {
                     var toolResult = await ExecuteToolCallAsync(toolCall, userJwt);
                     messages.Add(new ToolChatMessage(toolCall.Id, toolResult));
+
+                    if (toolCall.FunctionName == "search_hotels")
+                    {
+                        lastSearchResultJson = toolResult;
+                        using var argsDoc = JsonDocument.Parse(toolCall.FunctionArguments);
+                        var root = argsDoc.RootElement;
+                        lastSearchCheckIn = root.GetProperty("checkIn").GetString() ?? "";
+                        lastSearchCheckOut = root.GetProperty("checkOut").GetString() ?? "";
+                        lastSearchGuestCount = root.GetProperty("guestCount").GetInt32();
+                    }
                 }
             }
             else
             {
                 var text = result.Content.Count > 0 ? result.Content[0].Text : string.Empty;
+
+                if (lastSearchResultJson != null)
+                {
+                    string itemsRaw = "[]";
+                    int totalCount = 0;
+                    using var searchDoc = JsonDocument.Parse(lastSearchResultJson);
+                    var searchRoot = searchDoc.RootElement;
+                    if (searchRoot.TryGetProperty("items", out var itemsEl))
+                        itemsRaw = itemsEl.GetRawText();
+                    if (searchRoot.TryGetProperty("totalCount", out var tcEl))
+                        totalCount = tcEl.GetInt32();
+
+                    var structuredData =
+                        $"{{\"checkIn\":\"{lastSearchCheckIn}\"," +
+                        $"\"checkOut\":\"{lastSearchCheckOut}\"," +
+                        $"\"guestCount\":{lastSearchGuestCount}," +
+                        $"\"totalCount\":{totalCount}," +
+                        $"\"items\":{itemsRaw}}}";
+
+                    return new ChatResponse(text, "search_results", structuredData);
+                }
+
                 return new ChatResponse(text);
             }
         }
