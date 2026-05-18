@@ -2,26 +2,19 @@
 
 ## Open
 
-### BUG-001 — Admin panel fires API call with empty Bearer token
+### BUG-004 — Notification consumer crashes on malformed RabbitMQ message
 **Severity:** High  
-**Symptom:** `GET /api/v1/admin/hotels` returns 503; request header shows `Authorization: Bearer` (no token).  
-**Root cause:** The hotels page `useEffect` fires before the auth context `useEffect` has finished restoring the access token from `localStorage`. On first render, `token` is `''`, which gets captured in the closure.  
-**Fix:** Gate the data-fetch `useEffect` on `token` being non-empty, or add `token` to its dependency array so it re-fires once the token is restored.  
-**File:** `src/admin-client/app/hotels/page.tsx`
+**Symptom:** notification-service goes down silently if hotel-service publishes a malformed `BookingEvent`.  
+**Root cause:** `BookingEventConsumer` has no try-catch around `JsonSerializer.Deserialize` or the email/DB calls.  
+**Fix:** Wrap the consumer body in try-catch; log and acknowledge (or dead-letter) on failure.  
+**File:** `src/notification-service/Consumers/BookingEventConsumer.cs`
 
-### BUG-002 — Ocelot global `ClientIdHeader` blocks public routes
+### BUG-005 — Hotel/room delete hits FK constraint without user-facing error
 **Severity:** High  
-**Symptom:** `GET /api/v1/search` returns rate-limit error: `"Rate limiting client could not be identified... rule '0/1s/w0ms'"` even though the search route has no rate limiting configured.  
-**Root cause:** `GlobalConfiguration.RateLimitOptions.ClientIdHeader: "Authorization"` causes Ocelot's rate-limit middleware to intercept all requests and require the header even on routes without `EnableRateLimiting: true`.  
-**Workaround applied:** `GlobalConfiguration__RateLimitOptions__ClientIdHeader` env var set to empty on ACA — overrides the JSON config at runtime.  
-**Permanent fix:** Remove `ClientIdHeader` from `ocelot.Production.json` GlobalConfiguration (committed, pending CI/CD deploy).  
-**File:** `src/api-gateway/ocelot.Production.json`
-
-### BUG-003 — Redis cache not populated (wrong connection string in ACA secret)
-**Severity:** Medium  
-**Symptom:** `DBSIZE = 0` in Redis; all search requests hit Supabase directly; `SearchService` silently falls through due to `catch {}`.  
-**Root cause:** The `connectionstrings-redis` ACA secret had a stale/incorrect URL. The correct URL is `redis://default:...@tooth-bed-plastic-39581.db.redis.io:14377`.  
-**Fix applied:** Secret updated via `az containerapp secret set`; hotel-service restarted. Needs end-to-end verification (do a search, then check `DBSIZE`).
+**Symptom:** `DELETE /api/v1/admin/hotels/{id}` with existing rooms returns 500 (Npgsql FK violation) instead of 409/400.  
+**Root cause:** `HotelAdminService.DeleteHotelAsync` calls `_db.SaveChangesAsync()` with no pre-check.  
+**Fix:** Query child count before delete; return 409 with message if children exist.  
+**File:** `src/hotel-service/Services/HotelAdminService.cs`
 
 ---
 
@@ -35,3 +28,6 @@
 | R-004 | `NEXT_PUBLIC_COGNITO_CLIENT_ID` had BOM character in Vercel env var | Re-entered manually via Vercel dashboard |
 | R-005 | hotel-service cold start → 503 on first request after idle | `min-replicas` raised from 0 to 1 |
 | R-006 | Accidental new Vercel project created during CLI linking | User deleted duplicate; re-linked to correct `hotel-client` project |
+| BUG-001 | Admin panel fires API call with empty Bearer token (useEffect race) | Gated data-fetch useEffect on token being non-empty |
+| BUG-002 | Ocelot global `ClientIdHeader` blocks public routes | Removed `ClientIdHeader` from GlobalConfiguration; env var override applied |
+| BUG-003 | Redis cache not populated (wrong connection string in ACA secret) | Secret updated; verified 304 cache hits from UI (2026-05-18) |

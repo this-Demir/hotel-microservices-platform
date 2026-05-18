@@ -1,7 +1,6 @@
-# Project Status & Remaining Work
+# Project Status
 
 Last updated: 18.05.2026
-For code-level TODO details (snippets, file paths, step-by-step): `TODO_ADMIN_AND_DEPLOY.md`.
 
 ---
 
@@ -10,134 +9,111 @@ For code-level TODO details (snippets, file paths, step-by-step): `TODO_ADMIN_AN
 ### Backend — 100% complete and live
 
 All 5 .NET 9 services deployed on Azure Container Apps, Germany West Central.
-Every service passed CI (tests green) and CD (OIDC deploy to ACA).
 
 | Service | URL | Verified |
 |---|---|---|
 | api-gateway | `https://api-gateway.ashycoast-db26d23e.germanywestcentral.azurecontainerapps.io` | `GET /health` → 200 |
-| hotel-service | internal | search → real Supabase data via gateway |
+| hotel-service | internal | search + booking + admin CRUD live |
 | comments-service | internal | deployed |
-| notification-service | internal | deployed |
+| notification-service | internal | deployed, consumer running |
 | ai-agent-service | internal | deployed |
-| cron-jobs | AWS Lambda | nightly EventBridge trigger |
+| cron-jobs | AWS Lambda | **NOT YET DEPLOYED** — code ready, policies granted |
 
-### CD Pipeline — 100% complete
+### Frontends — both live on Vercel (Frankfurt)
 
-5 GitHub Actions workflows, all green.
-`test → build-and-push (GHCR) → deploy (az containerapp update)`.
-Auth via OIDC federation — no stored Azure credentials anywhere.
-Path-filtered — only the changed service's workflow runs.
+| App | URL | Status |
+|---|---|---|
+| User client | `https://hotel-client-gold.vercel.app` | Live — search + real data + auth verified |
+| Admin client | `https://hotel-admin-client.vercel.app` | Live — full CRUD verified |
 
-### API Gateway — rate limiting active
+### Auth — real Cognito wired in both clients
 
-Per-route rate limits applied in `ocelot.Production.json` to protect free-tier quotas:
+- App client `2b6bh0kh0g31djfclhcui2881l` (no secret, `USER_PASSWORD_AUTH`)
+- Real `InitiateAuth` in both clients
+- Admin user: `admin@hotelbooking.com` / `Admin@Hotel2026!`
 
-| Route | Methods | Limit | Reason |
-|---|---|---|---|
-| `/api/v1/agent/**` | POST | 5 / min | Each call hits OpenAI — costs real money |
-| `/api/v1/bookings/**` | POST | 5 / min | Prevents reservation spam + RabbitMQ/email abuse |
-| `/api/v1/admin/**` | POST, PUT, DELETE | 20 / min | Admin write protection |
-| `/api/v1/admin/**` | GET | 60 / min | Admin browsing; blocks runaway scripts |
-| `/api/v1/comments` | POST | 10 / min | Anti-spam for MongoDB Atlas free tier |
-| Search + all read routes | GET | no limit | Redis-cached / cheap; free browsing for evaluators |
+### Search + Redis cache — verified working
 
-Client identity: `Authorization` header — limits are per-user JWT.
-Rate limit headers returned on every response (`X-Rate-Limit-*`). Exceeding returns `429`.
-Limits are in-memory (Ocelot built-in); reset on cold start — acceptable for student demo.
+- Cache hits return 304; post-invalidation queries return 200
+- New hotels/rooms/availability appear in search results immediately
 
-### Frontends — live on Vercel (Frankfurt)
+### Admin panel — extended this session (2026-05-18)
 
-| App | URL |
+- **Room delete** ✓ — `DELETE /api/v1/admin/rooms/{id}`, cascade guard (409 if reservations exist)
+- **Room edit** ✓ — `PUT /api/v1/admin/rooms/{id}`, RoomModal extended for create+edit
+- **Availability delete** ✓ — `DELETE /api/v1/admin/availability/{id}`, guard on ReservedCount > 0
+- **Hotel image gallery** ✓ — new `HotelImages` table (migration applied to Supabase), multiple images per hotel with category titles (room-interior, room-overall, lobby, exterior, pool, restaurant, spa, bathroom, corridor, terrace), upload + delete UI in admin panel
+
+---
+
+## What Is Missing / Not Yet Done
+
+### Lambda + EventBridge — NEXT PRIORITY
+
+- AWS IAM policies granted to `Me` user: `AWSLambda_FullAccess`, `AmazonEventBridgeFullAccess`, inline policy for `iam:CreateRole/AttachRolePolicy/GetRole/PassRole` scoped to `lambda-capacity-checker-role`
+- **Still needed:**
+  1. Create execution role `lambda-capacity-checker-role` (attach `AWSLambdaBasicExecutionRole`)
+  2. Deploy function `CapacityCheckerFunction` via `dotnet lambda deploy-function`
+  3. Set env vars: `SUPABASE_CONNECTION_STRING`, `RESEND_API_KEY`, `NOTIFICATION_FROM_EMAIL`
+  4. Create EventBridge rule `nightly-capacity-check` (`cron(0 2 * * ? *)`)
+  5. Wire Lambda as EventBridge target + grant invoke permission
+  6. Manual test invoke
+  7. Set GitHub secrets (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, `LAMBDA_EXECUTION_ROLE_ARN`) so CD pipeline works
+
+### Notification end-to-end — not yet verified
+
+- book → RabbitMQ → notification-service → Resend email → in-app notification
+- Needs a real booking with auth to test
+
+### Remaining functional gaps
+
+| # | Gap |
 |---|---|
-| User client | `https://hotel-client-gold.vercel.app` |
-| Admin client | `https://hotel-admin-client.vercel.app` |
+| F-7 | Admin: reservations/bookings view page |
+| F-8 | Cache invalidation on hotel/room/availability writes |
 
-Both deployed with `vercel.json` (security headers, fra1 region), `robots.ts`, `manifest.ts`.
-`NEXT_PUBLIC_API_URL` set to the Azure gateway. Search verified with real Supabase data.
-CORS updated on api-gateway to allow both Vercel origins.
+### Input validation gaps (Phase 2)
 
----
+- Backend DTO validation attributes (hotel, room, availability, comments)
+- Frontend form validation (admin modals, search card)
 
-## What Is Broken / Missing
+### Performance (Phase 3)
 
-### 1. Auth is completely mocked in both frontends — BLOCKER
+- Location search: switch to `EF.Functions.ILike` (case-insensitive)
+- DB indexes on IsVacant, CheckIn/CheckOut, GuestCount
+- Result ranking (stars → price → availability)
 
-`src/client/lib/auth-context.tsx` and `src/admin-client/lib/auth-context.tsx` both use a hardcoded
-fake token. `login()` performs no Cognito call whatsoever.
+### Backend polish (Phase 4)
 
-Every request that requires a JWT — booking, AI chat, notifications, all admin operations —
-returns **401** from the real gateway. The only endpoints that work without auth are:
-`GET /api/v1/search` and `GET /api/v1/comments/{hotelId}`.
+- Notification consumer try-catch (BUG-004)
+- AI agent tool error recovery
+- 401 token refresh retry in `client/lib/api.ts`
 
-This is the single largest gap. Auth must be fixed before any real user flow can be tested.
+### Frontend UX (Phase 5)
 
-### 2. Frontends not deployed to Vercel
+- Member 15% discount badge in search results
+- Error toasts + loading states + skeleton screens
+- Admin dashboard/stats page
 
-No public URLs for either frontend. Cannot test against live backend until deployed.
+### Final (Phase 6)
 
-### 3. Cognito not configured for production
-
-- No admin user exists in the User Pool
-- No user groups (`Admin` / `User`)
-- No Vercel URLs set as allowed callback/sign-out origins in the app client
-- `ALLOW_USER_PASSWORD_AUTH` flow not confirmed on the app client (needed for `InitiateAuth`)
-
-### 4. Admin panel missing features
-
-- **Room delete** — no backend endpoint, no frontend button
-- **Image upload** — backend endpoint exists (`POST /api/v1/admin/hotels/{id}/image`), frontend UI missing entirely
-- **Image thumbnail** — hotel list shows no images
-
-### 5. Minor cleanups
-
-- `docker-compose.yml` still has `version: "3.9"` (Compose V2 warning on every command)
-- Ocelot multipart forwarding for image upload through gateway — not yet tested with real auth
+- Remove `version: "3.9"` from docker-compose.yml
+- End-to-end smoke test (all flows)
+- README live URLs + architecture diagram
+- Demo video
 
 ---
 
-## What Breaks Without Real Auth
+## ACA Secrets (set, never in git)
 
-| Feature | Effect |
-|---|---|
-| Booking | 401 |
-| AI chat | 401 |
-| Notifications | 401 |
-| 15% member discount | Never applied — discount is server-side, keyed on valid JWT |
-| All admin CRUD | 401 |
-| POST comment | 401 |
-| GET search | ✅ Works (public) |
-| GET comments | ✅ Works (public GET) |
-
----
-
-## Remaining Work — Ordered by Dependency
-
-### Session: Vercel deployment
-1. Deploy `src/client` to Vercel, set `NEXT_PUBLIC_API_URL` to gateway URL
-2. Deploy `src/admin-client` to Vercel, set same env var
-3. Update gateway CORS: `Cors__AllowedOrigins` with both Vercel production URLs
-
-### Session: Cognito setup
-4. Confirm `ALLOW_USER_PASSWORD_AUTH` is enabled on the Cognito app client
-5. Create an admin user in the User Pool with permanent password
-6. Create `Admin` and `User` groups; add admin user to `Admin`
-7. Add Vercel production URLs as allowed callback/sign-out origins in the app client
-
-### Session: Real auth in frontends
-8. Replace fake `login()` in `src/client/lib/auth-context.tsx` with real Cognito `InitiateAuth`
-9. Wire `sign-in/page.tsx` and `sign-up/page.tsx` to use real credentials
-10. Add `refresh_token` storage and 401-retry logic
-11. Repeat for `src/admin-client/lib/auth-context.tsx`
-12. Smoke-test: sign in → book → receive email, admin login → create hotel
-
-### After auth works: missing admin features
-13. Add `DELETE /api/v1/admin/rooms/{id}` to hotel-service + room delete button in admin-client
-14. Add image upload UI to admin-client hotel detail page + `uploadHotelImage` in `api.ts`
-15. Verify Ocelot forwards `multipart/form-data` correctly through the gateway
-16. Confirm Supabase `hotel-images` bucket exists with public-read policy
-
-### Final polish & deliverables
-17. Remove `version: "3.9"` from `docker-compose.yml`
-18. End-to-end smoke test: search (guest vs member price) → book → RabbitMQ → Resend email → in-app notification → AI chat
-19. README: live URLs, architecture diagram, setup instructions
-20. Demo video
+| App | Secret | What it holds |
+|---|---|---|
+| hotel-service | `connectionstrings-postgres` | Supabase pooler URL |
+| hotel-service | `connectionstrings-redis` | Upstash rediss:// URL |
+| hotel-service | `connectionstrings-rabbitmq` | CloudAMQP amqps:// URL |
+| hotel-service | `supabase-servicerolekey` | Supabase service role JWT |
+| comments-service | `connectionstrings-mongodb` | MongoDB Atlas SRV URI |
+| notification-service | `connectionstrings-supabase` | Supabase pooler URL |
+| notification-service | `connectionstrings-rabbitmq` | CloudAMQP amqps:// URL |
+| notification-service | `resend-apikey` | Resend API key |
+| ai-agent-service | `openai-apikey` | OpenAI API key |
