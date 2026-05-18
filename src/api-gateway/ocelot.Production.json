@@ -33,14 +33,16 @@
       "UpstreamHttpMethod": [ "GET" ],
       "DownstreamPathTemplate": "/api/v1/search",
       "DownstreamScheme": "https",
-      "DownstreamHostAndPorts": [ { "Host": "hotel-service.internal.ashycoast-db26d23e.germanywestcentral.azurecontainerapps.io", "Port": 443 } ]
+      "DownstreamHostAndPorts": [ { "Host": "hotel-service.internal.ashycoast-db26d23e.germanywestcentral.azurecontainerapps.io", "Port": 443 } ],
+      "RateLimitOptions": { "EnableRateLimiting": false }
     },
     {
       "UpstreamPathTemplate": "/api/v1/search/{everything}",
       "UpstreamHttpMethod": [ "GET" ],
       "DownstreamPathTemplate": "/api/v1/search/{everything}",
       "DownstreamScheme": "https",
-      "DownstreamHostAndPorts": [ { "Host": "hotel-service.internal.ashycoast-db26d23e.germanywestcentral.azurecontainerapps.io", "Port": 443 } ]
+      "DownstreamHostAndPorts": [ { "Host": "hotel-service.internal.ashycoast-db26d23e.germanywestcentral.azurecontainerapps.io", "Port": 443 } ],
+      "RateLimitOptions": { "EnableRateLimiting": false }
     },
     {
       "UpstreamPathTemplate": "/api/v1/bookings/{everything}",
@@ -48,7 +50,8 @@
       "DownstreamPathTemplate": "/api/v1/bookings/{everything}",
       "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [ { "Host": "hotel-service.internal.ashycoast-db26d23e.germanywestcentral.azurecontainerapps.io", "Port": 443 } ],
-      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" }
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "RateLimitOptions": { "EnableRateLimiting": false }
     },
     {
       "UpstreamPathTemplate": "/api/v1/bookings/{everything}",
@@ -70,14 +73,16 @@
       "DownstreamPathTemplate": "/api/v1/notifications/{everything}",
       "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [ { "Host": "hotel-service.internal.ashycoast-db26d23e.germanywestcentral.azurecontainerapps.io", "Port": 443 } ],
-      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" }
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "RateLimitOptions": { "EnableRateLimiting": false }
     },
     {
       "UpstreamPathTemplate": "/api/v1/comments/{everything}",
       "UpstreamHttpMethod": [ "GET" ],
       "DownstreamPathTemplate": "/api/v1/comments/{everything}",
       "DownstreamScheme": "https",
-      "DownstreamHostAndPorts": [ { "Host": "comments-service.internal.ashycoast-db26d23e.germanywestcentral.azurecontainerapps.io", "Port": 443 } ]
+      "DownstreamHostAndPorts": [ { "Host": "comments-service.internal.ashycoast-db26d23e.germanywestcentral.azurecontainerapps.io", "Port": 443 } ],
+      "RateLimitOptions": { "EnableRateLimiting": false }
     },
     {
       "UpstreamPathTemplate": "/api/v1/comments",
@@ -109,6 +114,12 @@
     }
   ],
   "GlobalConfiguration": {
-    "BaseUrl": "https://api-gateway.ashycoast-db26d23e.germanywestcentral.azurecontainerapps.io"
+    "BaseUrl": "https://api-gateway.ashycoast-db26d23e.germanywestcentral.azurecontainerapps.io",
+    "RateLimitOptions": {
+      "ClientIdHeader": "X-Forwarded-For",
+      "DisableRateLimitHeaders": false,
+      "QuotaExceededMessage": "Rate limit exceeded. Please slow down and try again.",
+      "HttpStatusCode": 429
+    }
   }
 }
