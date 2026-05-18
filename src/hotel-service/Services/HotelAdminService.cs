@@ -2,7 +2,6 @@ using System.Net.Http.Headers;
 using HotelService.Data;
 using HotelService.DTOs;
 using HotelService.Models;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
 namespace HotelService.Services;
@@ -74,7 +73,7 @@ public class HotelAdminService(
             .ToListAsync();
     }
 
-    public async Task<HotelImageResponse> UploadHotelImageAsync(Guid hotelId, string title, IFormFile file)
+    public async Task<HotelImageResponse> UploadHotelImageAsync(Guid hotelId, UploadImageRequest request)
     {
         var hotel = await db.Hotels.FindAsync(hotelId)
             ?? throw new KeyNotFoundException("Hotel not found.");
@@ -82,11 +81,20 @@ public class HotelAdminService(
         var supabaseUrl = config["Supabase:Url"]!;
         var serviceKey = config["Supabase:ServiceRoleKey"]!;
         var bucket = config["Supabase:StorageBucket"] ?? "hotel-images";
-        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
-        var objectPath = $"hotels/{hotelId}/{title}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}{ext}";
+        var ext = request.ContentType switch
+        {
+            "image/jpeg" or "image/jpg" => ".jpg",
+            "image/png"                 => ".png",
+            "image/webp"                => ".webp",
+            "image/gif"                 => ".gif",
+            _                           => ".bin",
+        };
+        var objectPath = $"hotels/{hotelId}/{request.Title}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}{ext}";
 
-        using var content = new StreamContent(file.OpenReadStream());
-        content.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+        var bytes = Convert.FromBase64String(request.FileBase64);
+        using var ms = new MemoryStream(bytes);
+        using var content = new StreamContent(ms);
+        content.Headers.ContentType = new MediaTypeHeaderValue(request.ContentType);
 
         var req = new HttpRequestMessage(HttpMethod.Post,
             $"{supabaseUrl}/storage/v1/object/{bucket}/{objectPath}")
@@ -102,7 +110,7 @@ public class HotelAdminService(
 
         var imageUrl = $"{supabaseUrl}/storage/v1/object/public/{bucket}/{objectPath}";
 
-        var image = new HotelImage { HotelId = hotelId, Title = title, ImageUrl = imageUrl };
+        var image = new HotelImage { HotelId = hotelId, Title = request.Title, ImageUrl = imageUrl };
         db.HotelImages.Add(image);
 
         // first image becomes the cover used in search results

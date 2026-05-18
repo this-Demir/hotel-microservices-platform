@@ -1,5 +1,4 @@
 using HotelService.DTOs;
-using Microsoft.AspNetCore.Http;
 
 namespace HotelService.Services;
 
@@ -11,7 +10,7 @@ public interface IHotelAdminService
     Task<HotelResponse?> GetHotelAsync(Guid id);
     Task<PagedResult<HotelResponse>> GetHotelsAsync(int page, int pageSize);
     Task<IEnumerable<HotelImageResponse>> GetHotelImagesAsync(Guid hotelId);
-    Task<HotelImageResponse> UploadHotelImageAsync(Guid hotelId, string title, IFormFile file);
+    Task<HotelImageResponse> UploadHotelImageAsync(Guid hotelId, UploadImageRequest request);
     Task<bool> DeleteHotelImageAsync(Guid imageId);
 
     Task<RoomResponse> CreateRoomAsync(CreateRoomRequest request);

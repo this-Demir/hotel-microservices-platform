@@ -134,13 +134,16 @@ export async function uploadHotelImage(
   token?: string,
 ): Promise<HotelImageResponse> {
   if (!API_URL) throw new Error('No API URL configured')
-  const body = new FormData()
-  body.append('file', file)
-  body.append('title', title)
+  const fileBase64 = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve((reader.result as string).split(',')[1])
+    reader.onerror = () => reject(new Error('Failed to read file'))
+    reader.readAsDataURL(file)
+  })
   const res = await fetch(`${API_URL}/api/v1/admin/hotels/${hotelId}/images`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
-    body,
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ title, fileBase64, contentType: file.type }),
   })
   if (!res.ok) throw new Error('Image upload failed')
   return res.json()

@@ -6,6 +6,7 @@ public record UpdateHotelRequest(string Name, string LocationPoint, string Descr
 public record HotelResponse(Guid Id, string Name, string LocationPoint, string Description, string AdminEmail, string? ImageUrl);
 
 // Hotel images
+public record UploadImageRequest(string Title, string FileBase64, string ContentType);
 public record HotelImageResponse(Guid Id, Guid HotelId, string Title, string ImageUrl, DateTime CreatedAt);
 
 // Rooms

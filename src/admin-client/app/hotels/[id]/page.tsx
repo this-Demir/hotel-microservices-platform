@@ -35,6 +35,7 @@ export default function HotelDetailPage() {
   const [images, setImages] = useState<HotelImageResponse[]>([])
   const [imageTitle, setImageTitle] = useState('room-interior')
   const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imageInputKey, setImageInputKey] = useState(0)
   const [imageUploading, setImageUploading] = useState(false)
 
   const [roomModal, setRoomModal] = useState<RoomResponse | null | false>(false)
@@ -87,6 +88,7 @@ export default function HotelDetailPage() {
       const uploaded = await uploadHotelImage(id, imageTitle, imageFile, token)
       setImages((prev) => [...prev, uploaded])
       setImageFile(null)
+      setImageInputKey((k) => k + 1)
       showToast('Image uploaded')
     } catch {
       showToast('Upload failed')
@@ -223,6 +225,7 @@ export default function HotelDetailPage() {
                 {imageFile ? imageFile.name : 'Choose image…'}
               </div>
               <input
+                key={imageInputKey}
                 type="file"
                 accept="image/*"
                 className="hidden"

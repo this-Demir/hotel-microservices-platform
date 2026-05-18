@@ -47,14 +47,15 @@ public class AdminController(IHotelAdminService adminService) : ControllerBase
         => Ok(await adminService.GetHotelImagesAsync(id));
 
     [HttpPost("hotels/{id:guid}/images")]
-    public async Task<IActionResult> UploadHotelImage(Guid id, IFormFile file, [FromForm] string title)
+    public async Task<IActionResult> UploadHotelImage(Guid id, [FromBody] UploadImageRequest request)
     {
         try
         {
-            var image = await adminService.UploadHotelImageAsync(id, title, file);
+            var image = await adminService.UploadHotelImageAsync(id, request);
             return Ok(image);
         }
         catch (KeyNotFoundException) { return NotFound(); }
+        catch (FormatException) { return BadRequest("Invalid base64 file data."); }
     }
 
     [HttpDelete("hotels/{hotelId:guid}/images/{imageId:guid}")]
