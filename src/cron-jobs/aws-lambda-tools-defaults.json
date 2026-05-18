@@ -6,11 +6,12 @@
     "All the command line options for the Lambda command can be specified in this file."
   ],
   "profile": "",
-  "region": "",
+  "region": "us-east-1",
   "configuration": "Release",
   "function-architecture": "x86_64",
   "function-runtime": "dotnet10",
   "function-memory-size": 512,
-  "function-timeout": 30,
-  "function-handler": "CapacityCheckerFunction::CapacityCheckerFunction.Function::FunctionHandler"
+  "function-timeout": 60,
+  "function-handler": "CapacityCheckerFunction::CapacityCheckerFunction.Function::FunctionHandler",
+  "function-name": "CapacityCheckerFunction"
 }
