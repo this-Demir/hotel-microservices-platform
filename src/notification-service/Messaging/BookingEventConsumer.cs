@@ -40,9 +40,16 @@ public class BookingEventConsumer(
                 var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
                 var notificationWriter = scope.ServiceProvider.GetRequiredService<INotificationWriter>();
 
-                await emailService.SendBookingConfirmationAsync(
-                    evt.UserEmail, evt.HotelName, evt.RoomType,
-                    evt.CheckIn, evt.CheckOut, evt.PricePaid);
+                try
+                {
+                    await emailService.SendBookingConfirmationAsync(
+                        evt.UserEmail, evt.HotelName, evt.RoomType,
+                        evt.CheckIn, evt.CheckOut, evt.PricePaid);
+                }
+                catch (Exception emailEx)
+                {
+                    logger.LogWarning(emailEx, "Email delivery failed for {Email} — in-app notification will still be written", evt.UserEmail);
+                }
 
                 await notificationWriter.WriteAsync(
                     evt.UserId,
