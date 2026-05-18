@@ -47,7 +47,7 @@ export function ChatWidget() {
 
   const send = async () => {
     const t = text.trim()
-    if (!t || !token) return
+    if (!t || !token || thinking) return
     setText('')
     setMessages((m) => [...m, { role: 'user', content: t }])
     setThinking(true)
@@ -129,7 +129,7 @@ export function ChatWidget() {
               />
               <button
                 onClick={send}
-                disabled={!text.trim()}
+                disabled={!text.trim() || thinking}
                 className="w-10 h-10 rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white grid place-items-center transition shrink-0"
               >
                 <SendIcon className="w-4 h-4" />

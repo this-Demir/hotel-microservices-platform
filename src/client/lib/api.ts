@@ -132,7 +132,8 @@ export async function markNotificationRead(id: string, token: string): Promise<v
 }
 
 export async function getInitialChatHistory(): Promise<ChatMessage[]> {
-  return [...mockChatHistory]
+  if (!API_URL) return [...mockChatHistory]
+  return [{ role: 'assistant', content: "Hi! I'm your StayEase travel agent. Tell me where you're headed and I'll find the best options for you." }]
 }
 
 export async function getHotelById(hotelId: string): Promise<MockHotel | null> {

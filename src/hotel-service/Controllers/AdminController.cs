@@ -7,7 +7,7 @@ namespace HotelService.Controllers;
 
 [ApiController]
 [Route("api/v1/admin")]
-[Authorize]
+[Authorize(Policy = "AdminOnly")]
 public class AdminController(IHotelAdminService adminService) : ControllerBase
 {
     [HttpGet("hotels")]

@@ -30,6 +30,12 @@ builder.Services
         };
     });
 
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy =>
+        policy.RequireClaim("cognito:groups", "Admin"));
+});
+
 // Redis — Parse() doesn't populate SslHost from rediss:// on Linux; only set it when SSL is active
 builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
 {

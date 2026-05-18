@@ -13,6 +13,7 @@ builder.Services
     .AddJwtBearer(options =>
     {
         options.Authority = builder.Configuration["Cognito:Authority"];
+        options.MapInboundClaims = false;
         options.TokenValidationParameters = new()
         {
             ValidateIssuerSigningKey = true,
