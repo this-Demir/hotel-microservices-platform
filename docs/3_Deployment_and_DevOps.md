@@ -10,7 +10,7 @@ The project is maintained in a single GitHub repository: `this-Demir/hotel-micro
   /comments-service     → MongoDB-backed comments (.NET 9)
   /notification-service → RabbitMQ consumer + Resend email (.NET 9)
   /ai-agent-service     → OpenAI GPT-4o-mini orchestration (.NET 9)
-  /cron-jobs            → AWS Lambda nightly capacity checker (.NET 9)
+  /cron-jobs            → AWS Lambda nightly capacity checker (.NET 10)
   /client               → Next.js user app (search + book)
   /admin-client         → Next.js admin panel
 /.github/workflows      → Per-service CI/CD (path-filtered)
@@ -25,9 +25,9 @@ The project is maintained in a single GitHub repository: `this-Demir/hotel-micro
 | comments-service | Azure Container Apps (internal) | `comments-service.internal.ashycoast-db26d23e.germanywestcentral.azurecontainerapps.io` |
 | notification-service | Azure Container Apps (internal) | `notification-service.internal.ashycoast-db26d23e.germanywestcentral.azurecontainerapps.io` |
 | ai-agent-service | Azure Container Apps (internal) | `ai-agent-service.internal.ashycoast-db26d23e.germanywestcentral.azurecontainerapps.io` |
-| cron-jobs | AWS Lambda + Amazon EventBridge | Nightly capacity checker |
-| client | Vercel (Hobby) | Pending deployment |
-| admin-client | Vercel (Hobby) | Pending deployment |
+| cron-jobs | AWS Lambda + Amazon EventBridge | `CapacityCheckerFunction` — us-east-1, dotnet10, nightly `cron(0 1 * * ? *)` |
+| client | Vercel (Hobby) | `https://hotel-client-gold.vercel.app` |
+| admin-client | Vercel (Hobby) | `https://hotel-admin-client.vercel.app` |
 | RabbitMQ | CloudAMQP (free tier) | `sparrow.rmq.cloudamqp.com`, vhost `isenpvss` |
 | Redis Cache | Upstash (serverless free tier) | `tooth-bed-plastic-39581.db.redis.io:14377` |
 | Relational DB | Supabase (PostgreSQL) | Session pooler, `aws-1-ap-northeast-1.pooler.supabase.com:5432` |
@@ -51,9 +51,29 @@ The project is maintained in a single GitHub repository: `this-Demir/hotel-micro
 | GiB-seconds | 360,000 |
 | Requests | 2,000,000 |
 
-All apps run with `--min-replicas 0 --max-replicas 1` (scale-to-zero) to stay within free quota.
+All apps run with `--min-replicas 0 --max-replicas 1` (scale-to-zero) to stay within free quota, **except notification-service which is set to `--min-replicas 1`** — it is a pure RabbitMQ background worker with no HTTP traffic to trigger a scale-up.
 
-## 4. CI/CD Principles
+## 4. AWS Lambda Infrastructure
+
+**Account:** `714807364884`
+**Region:** `us-east-1`
+**Function:** `CapacityCheckerFunction`
+**Runtime:** `dotnet10` (AWS Lambda skips .NET 9 — managed runtimes are dotnet8 and dotnet10)
+**Memory:** 512 MB | **Timeout:** 60s
+**Execution role:** `arn:aws:iam::714807364884:role/lambda-capacity-checker-role` (AWSLambdaBasicExecutionRole)
+
+**EventBridge rule:** `nightly-capacity-check`
+- Schedule: `cron(0 1 * * ? *)` — fires 01:00 UTC every night
+- Target: `CapacityCheckerFunction`
+
+**Lambda environment variables:**
+| Key | Purpose |
+|---|---|
+| `SUPABASE_CONNECTION_STRING` | Direct Npgsql connection to Supabase PostgreSQL |
+| `RESEND_API_KEY` | Resend API key for alert emails |
+| `NOTIFICATION_FROM_EMAIL` | Sender address (`onboarding@resend.dev`) |
+
+## 6. CI/CD Principles
 
 - **Path filtering:** Each workflow only triggers on changes to its own `src/<service>/**` path.
   Changing hotel-service code will NOT trigger gateway or comments-service pipelines.
@@ -69,6 +89,10 @@ All apps run with `--min-replicas 0 --max-replicas 1` (scale-to-zero) to stay wi
 | `AZURE_CLIENT_ID` | OIDC service principal app ID |
 | `AZURE_TENANT_ID` | Azure tenant ID |
 | `AZURE_SUBSCRIPTION_ID` | Azure subscription ID |
+| `AWS_ACCESS_KEY_ID` | IAM user `Me` access key |
+| `AWS_SECRET_ACCESS_KEY` | IAM user `Me` secret key |
+| `AWS_REGION` | `us-east-1` |
+| `LAMBDA_EXECUTION_ROLE_ARN` | `arn:aws:iam::714807364884:role/lambda-capacity-checker-role` |
 
 ### Workflow Files
 | File | Service | Test project? |
@@ -82,7 +106,7 @@ All apps run with `--min-replicas 0 --max-replicas 1` (scale-to-zero) to stay wi
 | `admin-client.yml` | Next.js admin-client | Build only |
 | `cron-jobs.yml` | AWS Lambda | dotnet lambda package |
 
-## 5. Ocelot Gateway Routing
+## 7. Ocelot Gateway Routing
 
 In production, the gateway loads `ocelot.Production.json` (file present in `src/api-gateway/`).
 This file routes all API traffic to the ACA internal FQDNs via HTTPS on port 443.
@@ -99,17 +123,17 @@ This file routes all API traffic to the ACA internal FQDNs via HTTPS on port 443
 `/health` is handled by a middleware shim in `Program.cs` before Ocelot intercepts it
 (because `app.MapGet` is intercepted by Ocelot and never reached).
 
-## 6. Secrets Management
+## 8. Secrets Management
 
 All runtime secrets are stored in **ACA built-in secret store** (`az containerapp secret set`).
 They are referenced in env vars via `secretref:<secret-name>` — never plaintext.
 No Azure Key Vault (would incur cost). No secrets in git or Docker images.
 
-## 7. Free Tier Risk Notes
+## 9. Free Tier Risk Notes
 
 | Provider | Limit | Risk | Mitigation |
 |---|---|---|---|
-| Azure Container Apps | 180k vCPU-s + 360k GiB-s + 2M req/mo | Medium — replicas > 0 blows quota | `--min-replicas 0` on all 5 apps |
+| Azure Container Apps | 180k vCPU-s + 360k GiB-s + 2M req/mo | Medium — replicas > 0 blows quota | `--min-replicas 0` on 4 apps; notification-service at 1 (required for RabbitMQ consumer) |
 | Upstash Redis | 10,000 commands/day | Medium | Monitor during heavy testing |
 | CloudAMQP | 1M messages/month | Low | — |
 | MongoDB Atlas | 512MB storage | Low | — |
