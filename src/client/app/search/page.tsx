@@ -52,6 +52,7 @@ function SearchContent() {
 
   const [results, setResults] = useState<SearchResultItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [view, setView] = useState<'list' | 'map'>('list')
   const [priceMax, setPriceMax] = useState(700)
   const [stars, setStars] = useState<Record<number, boolean>>({ 5: false, 4: false, 3: false })
@@ -59,9 +60,10 @@ function SearchContent() {
   useEffect(() => {
     let alive = true
     setLoading(true)
-    searchHotels({ location, checkIn, checkOut, guestCount }).then((res) => {
-      if (alive) { setResults(res.items); setLoading(false) }
-    })
+    setError(null)
+    searchHotels({ location, checkIn, checkOut, guestCount })
+      .then((res) => { if (alive) { setResults(res.items); setLoading(false) } })
+      .catch(() => { if (alive) { setError('Could not reach the server. Please try again.'); setLoading(false) } })
     return () => { alive = false }
   }, [location, checkIn, checkOut, guestCount])
 
@@ -195,6 +197,12 @@ function SearchContent() {
             <div className="space-y-5">
               {loading ? (
                 Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)
+              ) : error ? (
+                <div className="bg-white rounded-2xl shadow-md ring-1 ring-red-200 p-14 text-center">
+                  <div className="text-5xl mb-3">⚠️</div>
+                  <h3 className="font-bold text-lg text-slate-900">Something went wrong</h3>
+                  <p className="text-sm text-slate-500 mt-1">{error}</p>
+                </div>
               ) : items.length === 0 ? (
                 <div className="bg-white rounded-2xl shadow-md ring-1 ring-slate-200/70 p-14 text-center">
                   <div className="text-5xl mb-3">🔍</div>
