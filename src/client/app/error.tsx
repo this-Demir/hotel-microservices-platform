@@ -14,8 +14,7 @@ export default function GlobalError({
     if (
       error.name === 'ChunkLoadError' ||
       error.message?.includes('dynamically imported module') ||
-      error.message?.includes('Loading chunk') ||
-      error.message?.includes('Failed to fetch')
+      error.message?.includes('Loading chunk')
     ) {
       window.location.reload()
     }

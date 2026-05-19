@@ -10,8 +10,7 @@ export function ChunkErrorHandler() {
       if (
         event.error?.name === 'ChunkLoadError' ||
         msg.includes('dynamically imported module') ||
-        msg.includes('Loading chunk') ||
-        (msg.includes('Failed to fetch') && src.includes('_next/static'))
+        msg.includes('Loading chunk')
       ) {
         window.location.reload()
       }
