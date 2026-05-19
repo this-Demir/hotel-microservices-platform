@@ -11,6 +11,7 @@ public class HotelComment
 
     public Guid HotelId { get; set; }
     public string UserId { get; set; } = null!;
+    public string UserEmail { get; set; } = null!;
     public DateTime TravelDate { get; set; }
     public double OverallRating { get; set; }
     public CategoryRatings CategoryRatings { get; set; } = null!;

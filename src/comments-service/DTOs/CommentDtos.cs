@@ -17,6 +17,7 @@ public record CommentResponse(
     string Id,
     Guid HotelId,
     string UserId,
+    string UserEmail,
     DateTime TravelDate,
     double OverallRating,
     CategoryRatingsDto CategoryRatings,
@@ -25,3 +26,10 @@ public record CommentResponse(
     DateTime CreatedAt);
 
 public record PagedResult<T>(IEnumerable<T> Items, int Page, int PageSize, int TotalCount);
+
+public record CommentPagedResult(
+    IEnumerable<CommentResponse> Items,
+    int Page,
+    int PageSize,
+    int TotalCount,
+    double AverageRating);

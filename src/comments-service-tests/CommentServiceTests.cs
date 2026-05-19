@@ -12,6 +12,7 @@ namespace CommentsService.Tests;
 file sealed class TestableCommentService : CommentService
 {
     public TestableCommentService(IMongoCollection<HotelComment> collection) : base(collection) { }
+    protected override Task<double> ComputeAverageRatingAsync(FilterDefinition<HotelComment> filter) => Task.FromResult(0.0);
 }
 
 public class CommentServiceTests
@@ -46,7 +47,7 @@ public class CommentServiceTests
             hotelId, DateTime.UtcNow, 4.5,
             new CategoryRatingsDto(5.0, 4.0, 3.5, 4.5), "Great stay!");
 
-        var result = await Build().CreateAsync(request, "user-001");
+        var result = await Build().CreateAsync(request, "user-001", "user001@example.com");
 
         Assert.Equal(hotelId, result.HotelId);
         Assert.Equal("user-001", result.UserId);
@@ -70,7 +71,7 @@ public class CommentServiceTests
         var ratings = new CategoryRatingsDto(4.0, 5.0, 3.0, 2.5);
         var request = new CreateCommentRequest(Guid.NewGuid(), DateTime.UtcNow, 4.0, ratings, "OK");
 
-        var result = await Build().CreateAsync(request, "user-002");
+        var result = await Build().CreateAsync(request, "user-002", "user002@example.com");
 
         Assert.Equal(4.0, result.CategoryRatings.Cleanliness);
         Assert.Equal(5.0, result.CategoryRatings.Staff);

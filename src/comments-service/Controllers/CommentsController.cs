@@ -23,7 +23,8 @@ public class CommentsController(ICommentService commentService) : ControllerBase
         try
         {
             var userId = User.FindFirst("sub")?.Value ?? string.Empty;
-            var comment = await commentService.CreateAsync(request, userId);
+            var userEmail = User.FindFirst("email")?.Value ?? string.Empty;
+            var comment = await commentService.CreateAsync(request, userId, userEmail);
             return CreatedAtAction(nameof(GetByHotel), new { hotelId = comment.HotelId }, comment);
         }
         catch (Exception ex)

@@ -20,12 +20,13 @@ public class CommentService : ICommentService
         _collection = collection;
     }
 
-    public async Task<CommentResponse> CreateAsync(CreateCommentRequest request, string userId)
+    public async Task<CommentResponse> CreateAsync(CreateCommentRequest request, string userId, string userEmail)
     {
         var comment = new HotelComment
         {
             HotelId = request.HotelId,
             UserId = userId,
+            UserEmail = userEmail,
             TravelDate = request.TravelDate,
             OverallRating = request.OverallRating,
             CategoryRatings = new CategoryRatings
@@ -43,10 +44,18 @@ public class CommentService : ICommentService
         return ToResponse(comment);
     }
 
-    public async Task<PagedResult<CommentResponse>> GetByHotelAsync(Guid hotelId, int page, int pageSize)
+    public async Task<CommentPagedResult> GetByHotelAsync(Guid hotelId, int page, int pageSize)
     {
         var filter = Builders<HotelComment>.Filter.Eq(c => c.HotelId, hotelId);
-        var total = (int)await _collection.CountDocumentsAsync(filter);
+
+        var totalTask = _collection.CountDocumentsAsync(filter);
+        var avgTask = ComputeAverageRatingAsync(filter);
+
+        await Task.WhenAll(totalTask, avgTask);
+
+        var total = (int)totalTask.Result;
+        double averageRating = avgTask.Result;
+
         var options = new FindOptions<HotelComment>
         {
             Sort = Builders<HotelComment>.Sort.Descending(c => c.CreatedAt),
@@ -55,13 +64,24 @@ public class CommentService : ICommentService
         };
         using var cursor = await _collection.FindAsync(filter, options);
         var items = await cursor.ToListAsync();
-        return new PagedResult<CommentResponse>(items.Select(ToResponse), page, pageSize, total);
+        return new CommentPagedResult(items.Select(ToResponse), page, pageSize, total, Math.Round(averageRating, 2));
+    }
+
+    protected virtual async Task<double> ComputeAverageRatingAsync(FilterDefinition<HotelComment> filter)
+    {
+        var result = await _collection
+            .Aggregate()
+            .Match(filter)
+            .Group(c => 1, g => new { Avg = g.Average(c => c.OverallRating) })
+            .FirstOrDefaultAsync();
+        return result?.Avg ?? 0;
     }
 
     private static CommentResponse ToResponse(HotelComment c) => new(
         c.Id,
         c.HotelId,
         c.UserId,
+        c.UserEmail,
         c.TravelDate,
         c.OverallRating,
         new CategoryRatingsDto(

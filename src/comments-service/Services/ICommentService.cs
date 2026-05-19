@@ -4,6 +4,6 @@ namespace CommentsService.Services;
 
 public interface ICommentService
 {
-    Task<CommentResponse> CreateAsync(CreateCommentRequest request, string userId);
-    Task<PagedResult<CommentResponse>> GetByHotelAsync(Guid hotelId, int page, int pageSize);
+    Task<CommentResponse> CreateAsync(CreateCommentRequest request, string userId, string userEmail);
+    Task<CommentPagedResult> GetByHotelAsync(Guid hotelId, int page, int pageSize);
 }

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { chatWithAgent, getInitialChatHistory, bookRoom } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
-import type { ChatMessage, AgentSearchPayload, SearchResultItem } from '@/lib/types'
+import type { ChatMessage, AgentSearchPayload, AgentReviewPayload, SearchResultItem, CommentResponse } from '@/lib/types'
 
 function cn(...xs: (string | false | undefined | null)[]) {
   return xs.filter(Boolean).join(' ')
@@ -195,6 +195,63 @@ function ChatRoomCard({ item, checkIn, checkOut, onBookNow, booking }: ChatRoomC
   )
 }
 
+// ── Reviews block ─────────────────────────────────────────────────────────────
+
+function maskEmail(email: string) {
+  if (!email) return 'Guest'
+  const at = email.indexOf('@')
+  if (at < 1) return email
+  return `${email[0]}***@${email.slice(at + 1)}`
+}
+
+function ChatReviewCard({ review }: { review: CommentResponse }) {
+  const preview = review.commentText.replace(/<[^>]*>/g, '').trim()
+  return (
+    <div className="bg-slate-50 rounded-xl ring-1 ring-slate-200 p-3 space-y-1.5">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-400 to-fuchsia-400 grid place-items-center text-white text-[9px] font-bold shrink-0">
+            {(review.userEmail || '?').slice(0, 2).toUpperCase()}
+          </div>
+          <span className="text-[11px] text-slate-500 truncate">{maskEmail(review.userEmail)}</span>
+        </div>
+        <div className="flex items-center gap-0.5 shrink-0">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <StarIcon key={i} className={cn('w-2.5 h-2.5', i < Math.round(review.overallRating) ? 'text-amber-400' : 'text-slate-200')} />
+          ))}
+        </div>
+      </div>
+      {preview && (
+        <p className="text-[11px] text-slate-600 leading-relaxed line-clamp-2">{preview}</p>
+      )}
+    </div>
+  )
+}
+
+function ReviewsBlock({ data }: { data: AgentReviewPayload }) {
+  if (!data.items.length && data.totalCount === 0) {
+    return <p className="text-xs text-slate-400 italic px-1">No reviews yet for this hotel.</p>
+  }
+  return (
+    <div className="w-full space-y-2 mt-1">
+      <div className="flex items-center justify-between px-0.5">
+        <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">
+          Guest Reviews · {data.totalCount} total
+        </span>
+        {data.averageRating > 0 && (
+          <span className="flex items-center gap-1 text-xs font-bold text-amber-500">
+            <StarIcon className="w-3.5 h-3.5" />
+            {data.averageRating.toFixed(1)}<span className="text-slate-400 font-normal">/5</span>
+          </span>
+        )}
+      </div>
+      {data.items.map((r) => (
+        <ChatReviewCard key={r.id} review={r} />
+      ))}
+    </div>
+  )
+}
+
 // ── Search results block ───────────────────────────────────────────────────────
 
 interface SearchResultsBlockProps {
@@ -324,6 +381,21 @@ function MessageBubble({ msg, onBookNow, bookingRoomId }: MessageBubbleProps) {
     )
   }
 
+  if (msg.structuredType === 'review_results' && msg.reviewData) {
+    return (
+      <div className="flex flex-col gap-2 items-start w-full">
+        {msg.content && (
+          <div className="max-w-[88%] px-3.5 py-2.5 rounded-2xl bg-white text-slate-800 ring-1 ring-slate-200 rounded-bl-md">
+            <Markdown text={msg.content} />
+          </div>
+        )}
+        <div className="w-full pr-2">
+          <ReviewsBlock data={msg.reviewData} />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex justify-start">
       <div className="max-w-[88%] px-3.5 py-2.5 rounded-2xl bg-white text-slate-800 ring-1 ring-slate-200 rounded-bl-md">
@@ -370,6 +442,11 @@ export function ChatWidget() {
         try {
           msg.structuredType = 'search_results'
           msg.structuredData = JSON.parse(res.structuredData) as AgentSearchPayload
+        } catch { /* ignore parse errors */ }
+      } else if (res.structuredType === 'review_results' && res.structuredData) {
+        try {
+          msg.structuredType = 'review_results'
+          msg.reviewData = JSON.parse(res.structuredData) as AgentReviewPayload
         } catch { /* ignore parse errors */ }
       }
       setMessages((m) => [...m, msg])

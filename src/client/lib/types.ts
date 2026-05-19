@@ -55,7 +55,7 @@ export interface AgentSearchPayload {
 
 export interface ChatResponse {
   reply: string
-  structuredType?: 'search_results'
+  structuredType?: 'search_results' | 'review_results'
   structuredData?: string
 }
 
@@ -86,12 +86,21 @@ export interface CommentResponse {
   id: string
   hotelId: string
   userId: string
+  userEmail: string
   travelDate: string
   overallRating: number
   categoryRatings: CategoryRatings
   commentText: string
   adminReply: string | null
   createdAt: string
+}
+
+export interface AgentReviewPayload {
+  items: CommentResponse[]
+  page: number
+  pageSize: number
+  totalCount: number
+  averageRating: number
 }
 
 export interface CreateCommentRequest {
@@ -123,6 +132,7 @@ export interface MockCity {
 export interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
-  structuredType?: 'search_results'
+  structuredType?: 'search_results' | 'review_results'
   structuredData?: AgentSearchPayload
+  reviewData?: AgentReviewPayload
 }

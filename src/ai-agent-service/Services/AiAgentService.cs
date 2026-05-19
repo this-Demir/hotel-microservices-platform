@@ -40,6 +40,21 @@ public class AgentService(OpenAIClient openAIClient, IHttpClientFactory httpClie
             }
             """));
 
+    internal static readonly ChatTool GetCommentsTool = ChatTool.CreateFunctionTool(
+        functionName: "get_hotel_comments",
+        functionDescription: "Fetch guest reviews for a specific hotel, sorted by overall rating descending. Returns average rating and paginated comments.",
+        functionParameters: BinaryData.FromString("""
+            {
+              "type": "object",
+              "properties": {
+                "hotelId":  { "type": "string",  "description": "UUID of the hotel" },
+                "page":     { "type": "integer", "description": "Page number (default 1)" },
+                "pageSize": { "type": "integer", "description": "Reviews per page (default 5, max 20)" }
+              },
+              "required": ["hotelId"]
+            }
+            """));
+
     public async Task<ChatResponse> ChatAsync(ChatRequest request, string userJwt)
     {
         var chatClient = openAIClient.GetChatClient("gpt-4o-mini");
@@ -48,8 +63,11 @@ public class AgentService(OpenAIClient openAIClient, IHttpClientFactory httpClie
         {
             ChatMessage.CreateSystemMessage(
                 $"You are StayEase, a hotel booking assistant. Today's date is {DateTime.UtcNow:yyyy-MM-dd}. " +
-                $"Your ONLY purpose is to help users search for hotels and make bookings. " +
-                $"You have two tools: search_hotels and book_hotel. Use them to fulfill requests. " +
+                $"Your ONLY purpose is to help users search for hotels, read reviews, and make bookings. " +
+                $"You have three tools: search_hotels, book_hotel, and get_hotel_comments. " +
+                $"Use get_hotel_comments when the user asks about reviews, ratings, or guest experiences for a hotel. " +
+                $"When presenting reviews, summarize key themes and always mention the average rating (e.g. '4.2/5'). " +
+                $"When recommending hotels, factor in the average rating from reviews if available. " +
                 $"Always use the current year when interpreting dates unless the user specifies otherwise. " +
                 $"When search results are shown to the user as interactive cards, they can book directly — " +
                 $"do NOT ask them to confirm again if they already clicked Book Now. " +
@@ -71,11 +89,13 @@ public class AgentService(OpenAIClient openAIClient, IHttpClientFactory httpClie
         var options = new ChatCompletionOptions();
         options.Tools.Add(SearchTool);
         options.Tools.Add(BookTool);
+        options.Tools.Add(GetCommentsTool);
 
         string? lastSearchResultJson = null;
         string? lastSearchCheckIn = null;
         string? lastSearchCheckOut = null;
         int lastSearchGuestCount = 0;
+        string? lastCommentsResultJson = null;
 
         while (true)
         {
@@ -99,6 +119,10 @@ public class AgentService(OpenAIClient openAIClient, IHttpClientFactory httpClie
                         lastSearchCheckIn = root.GetProperty("checkIn").GetString() ?? "";
                         lastSearchCheckOut = root.GetProperty("checkOut").GetString() ?? "";
                         lastSearchGuestCount = root.GetProperty("guestCount").GetInt32();
+                    }
+                    else if (toolCall.FunctionName == "get_hotel_comments")
+                    {
+                        lastCommentsResultJson = toolResult;
                     }
                 }
             }
@@ -127,6 +151,9 @@ public class AgentService(OpenAIClient openAIClient, IHttpClientFactory httpClie
                     return new ChatResponse(text, "search_results", structuredData);
                 }
 
+                if (lastCommentsResultJson != null)
+                    return new ChatResponse(text, "review_results", lastCommentsResultJson);
+
                 return new ChatResponse(text);
             }
         }
@@ -134,14 +161,25 @@ public class AgentService(OpenAIClient openAIClient, IHttpClientFactory httpClie
 
     internal async Task<string> ExecuteToolCallAsync(ChatToolCall toolCall, string userJwt)
     {
-        var http = httpClientFactory.CreateClient("hotel-service");
-        http.DefaultRequestHeaders.Authorization =
-            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", userJwt);
-
         try
         {
             using var args = JsonDocument.Parse(toolCall.FunctionArguments);
             var root = args.RootElement;
+
+            if (toolCall.FunctionName == "get_hotel_comments")
+            {
+                var hotelId  = root.GetProperty("hotelId").GetString() ?? string.Empty;
+                var page     = root.TryGetProperty("page",     out var pg) ? pg.GetInt32() : 1;
+                var pageSize = root.TryGetProperty("pageSize", out var ps) ? Math.Min(ps.GetInt32(), 20) : 5;
+
+                var http = httpClientFactory.CreateClient("comments-service");
+                var url = $"/api/v1/comments/{hotelId}?page={page}&pageSize={pageSize}";
+                return await http.GetStringAsync(url);
+            }
+
+            var hotelHttp = httpClientFactory.CreateClient("hotel-service");
+            hotelHttp.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", userJwt);
 
             if (toolCall.FunctionName == "search_hotels")
             {
@@ -152,7 +190,7 @@ public class AgentService(OpenAIClient openAIClient, IHttpClientFactory httpClie
 
                 var url = $"/api/v1/search?location={Uri.EscapeDataString(location)}" +
                           $"&checkIn={checkIn}&checkOut={checkOut}&guestCount={guestCount}";
-                return await http.GetStringAsync(url);
+                return await hotelHttp.GetStringAsync(url);
             }
             else if (toolCall.FunctionName == "book_hotel")
             {
@@ -164,7 +202,7 @@ public class AgentService(OpenAIClient openAIClient, IHttpClientFactory httpClie
                     guestCount = root.GetProperty("guestCount").GetInt32(),
                 });
                 using var content = new StringContent(body, Encoding.UTF8, "application/json");
-                var response = await http.PostAsync("/api/v1/bookings", content);
+                var response = await hotelHttp.PostAsync("/api/v1/bookings", content);
                 return await response.Content.ReadAsStringAsync();
             }
 

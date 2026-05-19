@@ -10,8 +10,15 @@ function fmtDate(iso: string) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-function initials(id: string) {
-  return id.slice(0, 2).toUpperCase()
+function initials(email: string) {
+  return (email || '?').slice(0, 2).toUpperCase()
+}
+
+function maskEmail(email: string) {
+  if (!email) return 'Guest'
+  const at = email.indexOf('@')
+  if (at < 1) return email
+  return `${email[0]}***@${email.slice(at + 1)}`
 }
 
 const StarIcon = ({ className }: { className?: string }) => (
@@ -42,10 +49,10 @@ export function ReviewCard({ review }: { review: CommentResponse }) {
     <div className="bg-white rounded-2xl shadow-md p-5 ring-1 ring-slate-200/70">
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-fuchsia-500 grid place-items-center text-white text-sm font-bold shrink-0">
-          {initials(review.userId)}
+          {initials(review.userEmail)}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="font-semibold text-slate-900 text-sm truncate">{review.userId}</div>
+          <div className="font-semibold text-slate-900 text-sm truncate">{maskEmail(review.userEmail)}</div>
           <div className="text-xs text-slate-500">Travelled {fmtDate(review.travelDate)}</div>
         </div>
         <div className="flex items-center gap-0.5 shrink-0">

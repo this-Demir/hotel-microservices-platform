@@ -30,6 +30,9 @@ builder.Services.AddSingleton(new OpenAIClient(
 builder.Services.AddHttpClient("hotel-service", client =>
     client.BaseAddress = new Uri(builder.Configuration["ServiceUrls:HotelService"]!));
 
+builder.Services.AddHttpClient("comments-service", client =>
+    client.BaseAddress = new Uri(builder.Configuration["ServiceUrls:CommentsService"]!));
+
 builder.Services.AddScoped<IAiAgentService, AgentService>();
 
 var app = builder.Build();
