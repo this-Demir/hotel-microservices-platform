@@ -9,12 +9,6 @@
 **Fix:** Query child rooms before delete; return 409 with message if any exist.
 **File:** `src/hotel-service/Services/HotelAdminService.cs`
 
-### BUG-006 — Admin image upload returns 500
-**Severity:** Medium
-**Symptom:** Uploading a hotel image from the admin panel returns 500.
-**Root cause:** Unknown — likely Ocelot not forwarding `multipart/form-data` correctly, or frontend FormData construction error.
-**Fix:** Investigate Ocelot route config for the image upload endpoint; verify frontend sends correct `Content-Type` boundary.
-**Files:** `src/api-gateway/ocelot.Production.json`, `src/admin-client/`
 
 ### BUG-007 — Lambda inserts notification with AdminEmail as UserId
 **Severity:** Medium
@@ -48,3 +42,4 @@
 | BUG-009 | Queue name mismatch — hotel-service published to `booking-events`, notification-service listened on `booking.events` | Aligned queue name in `BookingEventConsumer.cs` | 9b |
 | BUG-010 | JWT `sub` claim remapped by .NET middleware — `FindFirst("sub")` returned null | Added `MapInboundClaims = false` to `AddJwtBearer` in hotel-service + comments-service | 9b |
 | BUG-011 | Frontend sent access token instead of ID token — `email` claim missing, Resend rejected with 422 | `auth-context.tsx`: `setToken(accessToken)` → `setToken(idToken)` | 9b |
+| BUG-006 | Admin image upload returned 500 | `EnsureSuccessStatusCode()` was swallowing Supabase "Bucket not found" as unhandled `HttpRequestException`; fix reads error body + controller catches it; Supabase `hotel-images` bucket created in dashboard | 9c |

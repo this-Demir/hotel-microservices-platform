@@ -82,6 +82,26 @@ export interface MockReview {
   commentText: string
 }
 
+export interface CommentResponse {
+  id: string
+  hotelId: string
+  userId: string
+  travelDate: string
+  overallRating: number
+  categoryRatings: CategoryRatings
+  commentText: string
+  adminReply: string | null
+  createdAt: string
+}
+
+export interface CreateCommentRequest {
+  hotelId: string
+  travelDate: string
+  overallRating: number
+  categoryRatings: CategoryRatings
+  commentText: string
+}
+
 export interface MockHotel {
   id: string
   name: string

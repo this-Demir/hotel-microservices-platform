@@ -1,4 +1,7 @@
-import type { MockReview } from '@/lib/types'
+'use client'
+
+import DOMPurify from 'dompurify'
+import type { CommentResponse } from '@/lib/types'
 
 function fmtDate(iso: string) {
   if (!iso) return ''
@@ -7,8 +10,8 @@ function fmtDate(iso: string) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-function initials(name: string) {
-  return name.split(/\s+/).slice(0, 2).map((s) => s[0]).join('').toUpperCase()
+function initials(id: string) {
+  return id.slice(0, 2).toUpperCase()
 }
 
 const StarIcon = ({ className }: { className?: string }) => (
@@ -31,34 +34,49 @@ function CategoryBar({ label, value }: { label: string; value: number }) {
   )
 }
 
-interface ReviewCardProps {
-  review: MockReview
-}
+export function ReviewCard({ review }: { review: CommentResponse }) {
+  const isHtml = review.commentText.trimStart().startsWith('<')
+  const clean = isHtml ? DOMPurify.sanitize(review.commentText) : null
 
-export function ReviewCard({ review }: ReviewCardProps) {
   return (
     <div className="bg-white rounded-2xl shadow-md p-5 ring-1 ring-slate-200/70">
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-fuchsia-500 grid place-items-center text-white text-sm font-bold shrink-0">
           {initials(review.userId)}
         </div>
-        <div className="flex-1">
-          <div className="font-semibold text-slate-900 text-sm">{review.userId}</div>
+        <div className="flex-1 min-w-0">
+          <div className="font-semibold text-slate-900 text-sm truncate">{review.userId}</div>
           <div className="text-xs text-slate-500">Travelled {fmtDate(review.travelDate)}</div>
         </div>
-        <div className="flex items-center gap-0.5">
+        <div className="flex items-center gap-0.5 shrink-0">
           {Array.from({ length: 5 }).map((_, i) => (
             <StarIcon key={i} className={`w-4 h-4 ${i < review.overallRating ? 'text-amber-400' : 'text-slate-200'}`} />
           ))}
         </div>
       </div>
-      <p className="text-sm text-slate-700 mt-3 leading-relaxed">{review.commentText}</p>
+
+      {isHtml && clean ? (
+        <div
+          className="prose prose-sm prose-slate max-w-none mt-3 text-slate-700"
+          dangerouslySetInnerHTML={{ __html: clean }}
+        />
+      ) : (
+        <p className="text-sm text-slate-700 mt-3 leading-relaxed">{review.commentText}</p>
+      )}
+
       <div className="grid grid-cols-2 gap-x-5 gap-y-2 mt-4">
         <CategoryBar label="Cleanliness" value={review.categoryRatings.cleanliness} />
         <CategoryBar label="Staff" value={review.categoryRatings.staff} />
         <CategoryBar label="Facilities" value={review.categoryRatings.facilities} />
         <CategoryBar label="Eco-Friendly" value={review.categoryRatings.ecoFriendly} />
       </div>
+
+      {review.adminReply && (
+        <div className="mt-4 border-l-2 border-indigo-300 pl-3 bg-indigo-50/60 rounded-r-xl py-2 pr-3">
+          <div className="text-[10px] font-bold uppercase tracking-widest text-indigo-500 mb-0.5">Hotel Reply</div>
+          <p className="text-xs text-slate-700 leading-relaxed">{review.adminReply}</p>
+        </div>
+      )}
     </div>
   )
 }

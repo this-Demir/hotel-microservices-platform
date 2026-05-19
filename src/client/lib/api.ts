@@ -9,6 +9,8 @@ import type {
   PagedResult,
   MockHotel,
   ChatMessage,
+  CommentResponse,
+  CreateCommentRequest,
 } from '@/lib/types'
 import { mockHotels, mockNotifications, mockChatHistory } from '@/lib/mock-data'
 
@@ -170,5 +172,34 @@ export async function chatWithAgent(message: string, token: string, history: Cha
     const body = await res.json().catch(() => null)
     throw new Error(body?.error ?? 'Something went wrong. Please try again.')
   }
+  return res.json()
+}
+
+// ── Comments ─────────────────────────────────────────────────────────────────
+
+export async function getComments(
+  hotelId: string,
+  page = 1,
+  pageSize = 20,
+): Promise<PagedResult<CommentResponse>> {
+  if (!API_URL) return { items: [], page, pageSize, totalCount: 0 }
+  const res = await fetch(
+    `${API_URL}/api/v1/comments/${hotelId}?page=${page}&pageSize=${pageSize}`,
+  )
+  if (!res.ok) throw new Error('Failed to fetch comments')
+  return res.json()
+}
+
+export async function createComment(
+  data: CreateCommentRequest,
+  token: string,
+): Promise<CommentResponse> {
+  if (!API_URL) throw new Error('No API URL configured')
+  const res = await fetch(`${API_URL}/api/v1/comments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error('Failed to submit review')
   return res.json()
 }

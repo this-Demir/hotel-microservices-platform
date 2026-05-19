@@ -2,12 +2,13 @@
 
 import { use, useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { getHotelById } from '@/lib/api'
+import { getHotelById, getComments } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
 import { RoomCard } from '@/components/RoomCard'
 import { ReviewCard } from '@/components/ReviewCard'
+import { CommentForm } from '@/components/CommentForm'
 import { BookingModal } from '@/components/BookingModal'
-import type { SearchResultItem, MockHotel } from '@/lib/types'
+import type { SearchResultItem, MockHotel, CommentResponse } from '@/lib/types'
 
 function fmtDate(iso: string) {
   if (!iso) return ''
@@ -36,7 +37,7 @@ const StarIcon = ({ className }: { className?: string }) => (
 function HotelContent({ id }: { id: string }) {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const { isLoggedIn } = useAuth()
+  const { isLoggedIn, token } = useAuth()
 
   const today = new Date().toISOString().slice(0, 10)
   const inThreeDays = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10)
@@ -48,10 +49,18 @@ function HotelContent({ id }: { id: string }) {
   const [hotel, setHotel] = useState<MockHotel | null>(null)
   const [tab, setTab] = useState<'rooms' | 'reviews'>('rooms')
   const [bookingRoom, setBookingRoom] = useState<SearchResultItem | null>(null)
+  const [comments, setComments] = useState<CommentResponse[]>([])
+  const [commentsLoading, setCommentsLoading] = useState(false)
 
   useEffect(() => {
     getHotelById(id).then(setHotel)
   }, [id])
+
+  useEffect(() => {
+    if (tab !== 'reviews') return
+    setCommentsLoading(true)
+    getComments(id).then((r) => { setComments(r.items); setCommentsLoading(false) }).catch(() => setCommentsLoading(false))
+  }, [tab, id])
 
   if (!hotel) {
     return (
@@ -64,7 +73,13 @@ function HotelContent({ id }: { id: string }) {
     )
   }
 
-  const avg = hotel.reviews.reduce((a, b) => a + b.overallRating, 0) / hotel.reviews.length
+  const ratedComments = comments.filter((c) => c.overallRating != null)
+  const avg = ratedComments.length > 0
+    ? ratedComments.reduce((a, b) => a + b.overallRating, 0) / ratedComments.length
+    : hotel.reviews.length > 0
+      ? hotel.reviews.reduce((a, b) => a + b.overallRating, 0) / hotel.reviews.length
+      : 0
+  const reviewCount = comments.length || hotel.reviews.length
   const minPrice = Math.min(...hotel.rooms.map((r) => r.price))
   const minDiscounted = Math.round(minPrice * 0.85)
   const searchQs = new URLSearchParams({ checkIn, checkOut, guestCount: String(guestCount) }).toString()
@@ -93,7 +108,7 @@ function HotelContent({ id }: { id: string }) {
                   ))}
                 </div>
                 <span className="opacity-90">
-                  <span className="font-bold text-base">{avg.toFixed(1)}</span> · {hotel.reviews.length} reviews
+                  <span className="font-bold text-base">{avg.toFixed(1)}</span> · {reviewCount} reviews
                 </span>
               </div>
             </div>
@@ -131,7 +146,7 @@ function HotelContent({ id }: { id: string }) {
           <div className="mt-10 border-b border-slate-200 flex gap-1">
             {[
               { id: 'rooms' as const, label: `Rooms (${hotel.rooms.length})` },
-              { id: 'reviews' as const, label: `Reviews (${hotel.reviews.length})` },
+              { id: 'reviews' as const, label: `Reviews (${reviewCount})` },
             ].map((t) => (
               <button
                 key={t.id}
@@ -161,21 +176,57 @@ function HotelContent({ id }: { id: string }) {
 
             {tab === 'reviews' && (
               <>
-                <div className="grid sm:grid-cols-4 gap-3 mb-3">
-                  {(['Cleanliness', 'Staff', 'Facilities', 'Eco-Friendly'] as const).map((label, i) => {
-                    const key = (['cleanliness', 'staff', 'facilities', 'ecoFriendly'] as const)[i]
-                    const avgC = hotel.reviews.reduce((a, b) => a + b.categoryRatings[key], 0) / hotel.reviews.length
-                    return (
-                      <div key={label} className="bg-white rounded-2xl shadow-md ring-1 ring-slate-200/70 p-4">
-                        <div className="text-[10px] uppercase tracking-widest font-bold text-slate-500">{label}</div>
-                        <div className="text-2xl font-extrabold text-slate-900 mt-1">
-                          {avgC.toFixed(1)}<span className="text-sm font-medium text-slate-400"> / 5</span>
+                {/* Category averages from real comments */}
+                {comments.length > 0 && (
+                  <div className="grid sm:grid-cols-4 gap-3 mb-3">
+                    {(['Cleanliness', 'Staff', 'Facilities', 'Eco-Friendly'] as const).map((label, i) => {
+                      const key = (['cleanliness', 'staff', 'facilities', 'ecoFriendly'] as const)[i]
+                      const rated = comments.filter((c) => c.categoryRatings?.[key] != null)
+                      const avgC = rated.length > 0
+                        ? rated.reduce((a, b) => a + (b.categoryRatings[key] ?? 0), 0) / rated.length
+                        : null
+                      return (
+                        <div key={label} className="bg-white rounded-2xl shadow-md ring-1 ring-slate-200/70 p-4">
+                          <div className="text-[10px] uppercase tracking-widest font-bold text-slate-500">{label}</div>
+                          <div className="text-2xl font-extrabold text-slate-900 mt-1">
+                            {avgC != null ? avgC.toFixed(1) : '–'}
+                            <span className="text-sm font-medium text-slate-400"> / 5</span>
+                          </div>
                         </div>
-                      </div>
-                    )
-                  })}
-                </div>
-                {hotel.reviews.map((r) => <ReviewCard key={r.id} review={r} />)}
+                      )
+                    })}
+                  </div>
+                )}
+
+                {/* Write a review (logged-in only) */}
+                {isLoggedIn && token && (
+                  <CommentForm
+                    hotelId={id}
+                    token={token}
+                    onSubmitted={(c) => setComments((prev) => [c, ...prev])}
+                  />
+                )}
+                {!isLoggedIn && (
+                  <div className="bg-white rounded-2xl ring-1 ring-slate-200/70 p-5 text-center">
+                    <p className="text-sm text-slate-600">
+                      <button onClick={() => router.push('/sign-in')} className="text-indigo-600 font-semibold hover:underline">Sign in</button>{' '}
+                      to leave a review.
+                    </p>
+                  </div>
+                )}
+
+                {/* Review list */}
+                {commentsLoading ? (
+                  <div className="flex justify-center py-10">
+                    <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : comments.length === 0 ? (
+                  <div className="bg-white rounded-2xl ring-1 ring-slate-200/70 p-8 text-center text-slate-400 text-sm">
+                    No reviews yet. Be the first to share your experience!
+                  </div>
+                ) : (
+                  comments.map((c) => <ReviewCard key={c.id} review={c} />)
+                )}
               </>
             )}
           </div>
