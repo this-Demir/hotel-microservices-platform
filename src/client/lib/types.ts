@@ -64,6 +64,7 @@ export interface PagedResult<T> {
   page: number
   pageSize: number
   totalCount: number
+  averageRating?: number
 }
 
 export interface CategoryRatings {

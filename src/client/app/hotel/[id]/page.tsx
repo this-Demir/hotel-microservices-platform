@@ -50,17 +50,25 @@ function HotelContent({ id }: { id: string }) {
   const [tab, setTab] = useState<'rooms' | 'reviews'>('rooms')
   const [bookingRoom, setBookingRoom] = useState<SearchResultItem | null>(null)
   const [comments, setComments] = useState<CommentResponse[]>([])
-  const [commentsLoading, setCommentsLoading] = useState(false)
+  const [commentsLoading, setCommentsLoading] = useState(true)
+  const [totalCount, setTotalCount] = useState(0)
+  const [averageRating, setAverageRating] = useState(0)
 
   useEffect(() => {
     getHotelById(id).then(setHotel)
   }, [id])
 
   useEffect(() => {
-    if (tab !== 'reviews') return
     setCommentsLoading(true)
-    getComments(id).then((r) => { setComments(r.items); setCommentsLoading(false) }).catch(() => setCommentsLoading(false))
-  }, [tab, id])
+    getComments(id)
+      .then((r) => {
+        setComments(r.items)
+        setTotalCount(r.totalCount)
+        setAverageRating(r.averageRating ?? 0)
+        setCommentsLoading(false)
+      })
+      .catch(() => setCommentsLoading(false))
+  }, [id])
 
   if (!hotel) {
     return (
@@ -73,13 +81,8 @@ function HotelContent({ id }: { id: string }) {
     )
   }
 
-  const ratedComments = comments.filter((c) => c.overallRating != null)
-  const avg = ratedComments.length > 0
-    ? ratedComments.reduce((a, b) => a + b.overallRating, 0) / ratedComments.length
-    : hotel.reviews.length > 0
-      ? hotel.reviews.reduce((a, b) => a + b.overallRating, 0) / hotel.reviews.length
-      : 0
-  const reviewCount = comments.length || hotel.reviews.length
+  const avg = averageRating
+  const reviewCount = totalCount
   const minPrice = Math.min(...hotel.rooms.map((r) => r.price))
   const minDiscounted = Math.round(minPrice * 0.85)
   const searchQs = new URLSearchParams({ checkIn, checkOut, guestCount: String(guestCount) }).toString()
@@ -203,7 +206,14 @@ function HotelContent({ id }: { id: string }) {
                   <CommentForm
                     hotelId={id}
                     token={token}
-                    onSubmitted={(c) => setComments((prev) => [c, ...prev])}
+                    onSubmitted={(c) => {
+                      setComments((prev) => [c, ...prev])
+                      setTotalCount((n) => n + 1)
+                      setAverageRating((prev) => {
+                        const newTotal = prev * totalCount + c.overallRating
+                        return totalCount > 0 ? newTotal / (totalCount + 1) : c.overallRating
+                      })
+                    }}
                   />
                 )}
                 {!isLoggedIn && (
