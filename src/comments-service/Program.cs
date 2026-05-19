@@ -10,6 +10,7 @@ builder.Services.AddOpenApi();
 // MongoDB Atlas — exclusively for comments-service
 builder.Services.AddSingleton<IMongoClient>(
     new MongoClient(builder.Configuration.GetConnectionString("MongoDB")));
+builder.Services.AddHostedService<MongoIndexInitializer>();
 
 // JWT auth (Cognito)
 builder.Services

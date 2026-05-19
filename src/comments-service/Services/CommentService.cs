@@ -12,10 +12,6 @@ public class CommentService : ICommentService
     {
         var db = mongoClient.GetDatabase(config["MongoDB:Database"] ?? "hotel_comments_db");
         _collection = db.GetCollection<HotelComment>("hotel_comments");
-
-        var indexModel = new CreateIndexModel<HotelComment>(
-            Builders<HotelComment>.IndexKeys.Ascending(c => c.HotelId));
-        _collection.Indexes.CreateOne(indexModel);
     }
 
     // For unit testing — bypasses MongoDB client wiring

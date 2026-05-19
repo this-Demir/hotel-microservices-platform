@@ -2,6 +2,20 @@
 
 ## Open
 
+### BUG-012 — Comments service returns 500 on all requests (RESOLVED)
+**Severity:** High
+**Symptom:** `GET /api/v1/comments/{hotelId}` and `POST /api/v1/comments` both return 500.
+**Root cause (two issues):**
+1. **MongoDB Atlas IP whitelist missing** — ACA static egress IP `98.67.199.210` was not whitelisted in Atlas Network Access → SSL handshake failure (`tlsv1 alert internal error`). **Fixed:** IP added to Atlas allowlist, container restarted.
+2. **Index creation in scoped constructor** — `CommentService` was registered as `Scoped` but called `_collection.Indexes.CreateOne()` synchronously in its constructor (`CommentService.cs:18`). Any transient MongoDB error during construction killed the entire request, and DI cannot recover. **Fixed:** index creation moved to `MongoIndexInitializer : IHostedService` which runs once at startup before the host accepts traffic.
+**Fix:**
+- `src/comments-service/Services/MongoIndexInitializer.cs` — new `IHostedService`; creates `HotelId` index via `CreateOneAsync` in `StartAsync`; swallows startup errors (index is an optimisation, not a correctness requirement).
+- `src/comments-service/Services/CommentService.cs` — removed sync index creation from constructor; constructor now does field assignment only.
+- `src/comments-service/Program.cs` — `AddHostedService<MongoIndexInitializer>()` registered after `IMongoClient`.
+**Status:** Both issues resolved. All 5 unit tests pass.
+
+---
+
 ### BUG-005 — Hotel delete hits FK constraint without user-facing error
 **Severity:** High
 **Symptom:** `DELETE /api/v1/admin/hotels/{id}` with existing rooms returns 500 (Npgsql FK violation) instead of 409.
