@@ -20,8 +20,15 @@ public class CommentsController(ICommentService commentService) : ControllerBase
     [Authorize]
     public async Task<IActionResult> Create([FromBody] CreateCommentRequest request)
     {
-        var userId = User.FindFirst("sub")?.Value ?? string.Empty;
-        var comment = await commentService.CreateAsync(request, userId);
-        return CreatedAtAction(nameof(GetByHotel), new { hotelId = comment.HotelId }, comment);
+        try
+        {
+            var userId = User.FindFirst("sub")?.Value ?? string.Empty;
+            var comment = await commentService.CreateAsync(request, userId);
+            return CreatedAtAction(nameof(GetByHotel), new { hotelId = comment.HotelId }, comment);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = ex.Message });
+        }
     }
 }
