@@ -1,4 +1,4 @@
-import type { SearchResultItem, MockHotel } from '@/lib/types'
+import type { SearchResultItem } from '@/lib/types'
 
 function cn(...xs: (string | false | undefined | null)[]) {
   return xs.filter(Boolean).join(' ')
@@ -21,13 +21,12 @@ const StarIcon = ({ className }: { className?: string }) => (
 
 interface HotelCardProps {
   item: SearchResultItem
-  hotel?: MockHotel
   isLoggedIn?: boolean
   onView: () => void
 }
 
-export function HotelCard({ item, hotel, isLoggedIn, onView }: HotelCardProps) {
-  const stars = hotel?.starRating ?? item.starRating ?? 4
+export function HotelCard({ item, isLoggedIn, onView }: HotelCardProps) {
+  const stars = item.starRating ?? 4
   const imageUrl = item.hotelImageUrl ?? `https://picsum.photos/seed/${item.hotelId}/1200/800`
   const discounted = Math.round(item.price * 0.85)
 
@@ -65,8 +64,8 @@ export function HotelCard({ item, hotel, isLoggedIn, onView }: HotelCardProps) {
               </div>
             </div>
 
-            {hotel?.description && (
-              <p className="text-sm text-slate-600 mt-3 line-clamp-2">{hotel.description}</p>
+            {item.description && (
+              <p className="text-sm text-slate-600 mt-3 line-clamp-2">{item.description}</p>
             )}
 
             <div className="flex flex-wrap gap-1.5 mt-3">

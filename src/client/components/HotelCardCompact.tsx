@@ -1,6 +1,6 @@
 'use client'
 
-import type { SearchResultItem, MockHotel } from '@/lib/types'
+import type { SearchResultItem } from '@/lib/types'
 
 function cn(...xs: (string | false | undefined | null)[]) {
   return xs.filter(Boolean).join(' ')
@@ -24,7 +24,6 @@ const BookmarkIcon = ({ className }: { className?: string }) => (
 
 interface Props {
   item: SearchResultItem
-  hotel?: MockHotel
   isLoggedIn: boolean
   isHovered: boolean
   isSelected: boolean
@@ -33,7 +32,7 @@ interface Props {
   onView: () => void
 }
 
-export function HotelCardCompact({ item, hotel, isLoggedIn, isHovered, isSelected, onMouseEnter, onMouseLeave, onView }: Props) {
+export function HotelCardCompact({ item, isLoggedIn, isHovered, isSelected, onMouseEnter, onMouseLeave, onView }: Props) {
   const memberPrice = Math.round(item.price * 0.85)
   const imageSrc = item.hotelImageUrl ?? `https://picsum.photos/seed/${item.hotelId}/400/300`
 
@@ -82,10 +81,10 @@ export function HotelCardCompact({ item, hotel, isLoggedIn, isHovered, isSelecte
               {item.location}
             </div>
           </div>
-          {hotel?.starRating != null && (
+          {item.starRating != null && (
             <div className="flex items-center gap-1 shrink-0">
               <StarIcon className="w-3.5 h-3.5 text-amber-400" />
-              <span className="text-xs font-semibold text-slate-700">{hotel.starRating}.0</span>
+              <span className="text-xs font-semibold text-slate-700">{item.starRating}.0</span>
             </div>
           )}
         </div>

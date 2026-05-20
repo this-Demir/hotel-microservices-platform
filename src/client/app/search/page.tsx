@@ -9,7 +9,6 @@ import { HotelCard } from '@/components/HotelCard'
 import { HotelCardCompact } from '@/components/HotelCardCompact'
 import { SkeletonCard } from '@/components/SkeletonCard'
 import { SearchCard } from '@/components/SearchCard'
-import { mockHotels } from '@/lib/mock-data'
 import type { SearchResultItem } from '@/lib/types'
 
 const InteractiveMap = dynamic(
@@ -120,22 +119,16 @@ function SearchContent() {
     if (parent && el) parent.scrollTo({ top: el.offsetTop - parent.offsetTop - 12, behavior: 'smooth' })
   }, [selectedId])
 
-  const hotelsById = useMemo(
-    () => Object.fromEntries(mockHotels.map((h) => [h.id, h])),
-    [],
-  )
-
   const items = useMemo(() => {
     const activeStars = Object.entries(stars).filter(([, v]) => v).map(([k]) => Number(k))
     return results.filter((r) => {
       if (r.price > priceMax) return false
       if (activeStars.length) {
-        const s = hotelsById[r.hotelId]?.starRating ?? 0
-        if (!activeStars.includes(s)) return false
+        if (!activeStars.includes(r.starRating ?? 0)) return false
       }
       return true
     })
-  }, [results, priceMax, stars, hotelsById])
+  }, [results, priceMax, stars])
 
   function goToHotel(hotelId: string) {
     const qs = new URLSearchParams({ checkIn, checkOut, guestCount: String(guestCount) })
@@ -290,7 +283,6 @@ function SearchContent() {
                     <div key={item.roomId} ref={(el) => { cardRefs.current[item.hotelId] = el }}>
                       <HotelCardCompact
                         item={item}
-                        hotel={hotelsById[item.hotelId]}
                         isLoggedIn={isLoggedIn}
                         isHovered={hoveredId === item.hotelId}
                         isSelected={selectedId === item.hotelId}
@@ -402,7 +394,6 @@ function SearchContent() {
                           <HotelCard
                             key={item.roomId}
                             item={item}
-                            hotel={hotelsById[item.hotelId]}
                             isLoggedIn={isLoggedIn}
                             onView={() => goToHotel(item.hotelId)}
                           />

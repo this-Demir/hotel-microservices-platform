@@ -2,6 +2,7 @@
 
 import { use, useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import { getHotelById, getComments } from '@/lib/api'
 import { useAuth } from '@/lib/auth-context'
 import { RoomCard } from '@/components/RoomCard'
@@ -9,6 +10,11 @@ import { ReviewCard } from '@/components/ReviewCard'
 import { CommentForm } from '@/components/CommentForm'
 import { BookingModal } from '@/components/BookingModal'
 import type { SearchResultItem, MockHotel, CommentResponse } from '@/lib/types'
+
+const HotelLocationMap = dynamic(
+  () => import('@/components/HotelLocationMap').then((m) => m.HotelLocationMap),
+  { ssr: false, loading: () => <div className="w-full h-full bg-slate-100 animate-pulse rounded-xl" /> },
+)
 
 function fmtDate(iso: string) {
   if (!iso) return ''
@@ -291,6 +297,37 @@ function HotelContent({ id }: { id: string }) {
               Open the chat in the bottom-right to talk to our travel agent about this property.
             </p>
           </div>
+
+          {/* Location map */}
+          {(() => {
+            const room = hotel.rooms.find((r) => r.latitude != null && r.longitude != null)
+            if (!room?.latitude || !room?.longitude) return null
+            const lat = room.latitude
+            const lng = room.longitude
+            const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
+            return (
+              <div className="bg-white rounded-2xl shadow-md ring-1 ring-slate-200/70 overflow-hidden">
+                <div className="h-48">
+                  <HotelLocationMap lat={lat} lng={lng} />
+                </div>
+                <div className="p-4">
+                  <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Location</div>
+                  <p className="text-sm text-slate-700 font-medium">{hotel.location}</p>
+                  <a
+                    href={mapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-indigo-600">
+                      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" />
+                    </svg>
+                    Get Directions
+                  </a>
+                </div>
+              </div>
+            )
+          })()}
         </aside>
       </div>
 
