@@ -68,6 +68,15 @@
       }
     },
     {
+      "UpstreamPathTemplate": "/api/v1/notifications",
+      "UpstreamHttpMethod": [ "GET" ],
+      "DownstreamPathTemplate": "/api/v1/notifications",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [ { "Host": "hotel-service.internal.ashycoast-db26d23e.germanywestcentral.azurecontainerapps.io", "Port": 443 } ],
+      "AuthenticationOptions": { "AuthenticationProviderKey": "Bearer" },
+      "RateLimitOptions": { "EnableRateLimiting": false }
+    },
+    {
       "UpstreamPathTemplate": "/api/v1/notifications/{everything}",
       "UpstreamHttpMethod": [ "GET", "PUT" ],
       "DownstreamPathTemplate": "/api/v1/notifications/{everything}",

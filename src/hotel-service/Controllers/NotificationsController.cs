@@ -17,7 +17,7 @@ public class NotificationsController(INotificationService notificationService) :
         return Ok(await notificationService.GetNotificationsAsync(userId, page, pageSize));
     }
 
-    [HttpPatch("{id:guid}/read")]
+    [HttpPut("{id:guid}/read")]
     public async Task<IActionResult> MarkAsRead(Guid id)
     {
         var userId = User.FindFirst("sub")?.Value
