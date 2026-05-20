@@ -7,6 +7,7 @@ export interface HotelResponse {
   imageUrl: string | null
   latitude: number | null
   longitude: number | null
+  adminSub?: string | null
 }
 
 export interface CreateHotelRequest {
@@ -16,9 +17,29 @@ export interface CreateHotelRequest {
   adminEmail: string
   latitude?: number | null
   longitude?: number | null
+  adminSub?: string | null
 }
 
 export type UpdateHotelRequest = CreateHotelRequest
+
+export interface AdminReservationResponse {
+  id: string
+  userId: string
+  hotelName: string
+  roomType: string
+  checkIn: string
+  checkOut: string
+  guestCount: number
+  pricePaid: number
+}
+
+export interface NotificationResponse {
+  id: string
+  title: string
+  body: string
+  isRead: boolean
+  createdAt: string
+}
 
 export interface RoomResponse {
   id: string

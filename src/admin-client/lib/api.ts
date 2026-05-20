@@ -8,6 +8,8 @@ import type {
   UpdateRoomRequest,
   AvailabilityResponse,
   SetAvailabilityRequest,
+  AdminReservationResponse,
+  NotificationResponse,
   PagedResult,
 } from './types'
 import { mockHotels, mockRooms, mockAvailability } from './mock-data'
@@ -265,6 +267,44 @@ export async function deleteAvailability(id: string, token?: string): Promise<{ 
   if (res.status === 409) return res.json()
   if (!res.ok && res.status !== 204) throw new Error('Failed to delete availability')
   return {}
+}
+
+// ── Reservations ─────────────────────────────────────────────────────────────
+
+export async function getAllReservations(
+  token: string,
+  page = 1,
+  pageSize = 20,
+): Promise<PagedResult<AdminReservationResponse>> {
+  if (!API_URL) return { items: [], page, pageSize, totalCount: 0 }
+  const res = await fetch(
+    `${API_URL}/api/v1/admin/reservations?page=${page}&pageSize=${pageSize}`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  )
+  if (!res.ok) throw new Error('Failed to fetch reservations')
+  return res.json()
+}
+
+// ── Notifications ─────────────────────────────────────────────────────────────
+
+export async function getNotifications(
+  token: string,
+  page = 1,
+): Promise<PagedResult<NotificationResponse>> {
+  if (!API_URL) return { items: [], page, pageSize: 20, totalCount: 0 }
+  const res = await fetch(`${API_URL}/api/v1/notifications?page=${page}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!res.ok) throw new Error('Failed to fetch notifications')
+  return res.json()
+}
+
+export async function markNotificationRead(id: string, token: string): Promise<void> {
+  if (!API_URL) return
+  await fetch(`${API_URL}/api/v1/notifications/${id}/read`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}` },
+  })
 }
 
 export async function setAvailability(

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import dynamic from 'next/dynamic'
 import type { HotelResponse, CreateHotelRequest } from '@/lib/types'
+import { useAuth } from '@/lib/auth-context'
 
 const LocationPicker = dynamic(
   () => import('./LocationPicker').then((m) => m.LocationPicker),
@@ -23,6 +24,7 @@ interface Props {
 }
 
 export default function HotelModal({ hotel, onSave, onClose }: Props) {
+  const { adminSub } = useAuth()
   const [form, setForm] = useState({
     name: hotel?.name ?? '',
     locationPoint: hotel?.locationPoint ?? '',
@@ -43,7 +45,7 @@ export default function HotelModal({ hotel, onSave, onClose }: Props) {
     setLoading(true)
     setError('')
     try {
-      await onSave({ ...form, latitude: lat, longitude: lng })
+      await onSave({ ...form, latitude: lat, longitude: lng, adminSub: hotel?.adminSub ?? adminSub })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
       setLoading(false)

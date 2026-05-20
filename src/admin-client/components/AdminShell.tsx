@@ -3,16 +3,36 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { getNotifications } from '@/lib/api'
+import type { NotificationResponse } from '@/lib/types'
+import { AdminNotificationsPanel } from './AdminNotificationsPanel'
+
+const BellIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+  </svg>
+)
 
 export default function AdminShell({ children }: { children: React.ReactNode }) {
-  const { isReady, isAdmin, adminEmail, logout } = useAuth()
+  const { isReady, isAdmin, adminEmail, token, logout } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
+
+  const [notifications, setNotifications] = useState<NotificationResponse[]>([])
+  const [panelOpen, setPanelOpen] = useState(false)
 
   useEffect(() => {
     if (isReady && !isAdmin) router.replace('/login')
   }, [isAdmin, isReady, router])
+
+  useEffect(() => {
+    if (!isReady || !isAdmin || !token) return
+    getNotifications(token).then((r) => setNotifications(r.items as NotificationResponse[]))
+  }, [isReady, isAdmin, token])
+
+  const unreadCount = notifications.filter((n) => !n.isRead).length
 
   if (!isReady || !isAdmin) {
     return (
@@ -33,7 +53,9 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1">
+          <NavItem href="/" label="Dashboard" active={pathname === '/'} />
           <NavItem href="/hotels" label="Hotels" active={pathname.startsWith('/hotels')} />
+          <NavItem href="/reservations" label="Reservations" active={pathname.startsWith('/reservations')} />
         </nav>
 
         <div className="border-t border-slate-700 p-3">
@@ -46,8 +68,33 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         </div>
       </aside>
 
-      {/* Content */}
-      <main className="flex-1 overflow-y-auto">{children}</main>
+      {/* Main area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Top bar */}
+        <header className="h-12 bg-white border-b border-gray-200 flex items-center justify-end px-5 shrink-0">
+          <button
+            onClick={() => setPanelOpen(true)}
+            className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600"
+            aria-label="Notifications"
+          >
+            <BellIcon className="w-5 h-5" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-amber-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </button>
+        </header>
+
+        <main className="flex-1 overflow-y-auto">{children}</main>
+      </div>
+
+      <AdminNotificationsPanel
+        open={panelOpen}
+        onClose={() => setPanelOpen(false)}
+        notifications={notifications}
+        setNotifications={setNotifications}
+      />
     </div>
   )
 }

@@ -10,6 +10,7 @@ interface AuthState {
   isAdmin: boolean
   token: string
   adminEmail: string
+  adminSub: string
   login: (email: string, password: string) => Promise<void>
   logout: () => void
 }
@@ -29,6 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAdmin, setIsAdmin] = useState(false)
   const [token, setToken] = useState('')
   const [adminEmail, setAdminEmail] = useState('')
+  const [adminSub, setAdminSub] = useState('')
 
   useEffect(() => {
     const stored = localStorage.getItem('admin_token')
@@ -39,6 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsAdmin(true)
         setToken(stored)
         setAdminEmail(storedEmail)
+        setAdminSub((claims.sub as string) ?? '')
       } else {
         localStorage.removeItem('admin_token')
         localStorage.removeItem('admin_email')
@@ -71,11 +74,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const groups: string[] = (claims?.['cognito:groups'] as string[]) ?? []
     if (!groups.includes('Admin')) throw new Error('Access denied: Admin privileges required')
 
+    const accessClaims = parseJwt(AccessToken)
     localStorage.setItem('admin_token', AccessToken)
     localStorage.setItem('admin_refresh', RefreshToken)
     localStorage.setItem('admin_email', email)
     setToken(AccessToken)
     setAdminEmail(email)
+    setAdminSub((accessClaims?.sub as string) ?? '')
     setIsAdmin(true)
   }
 
@@ -85,11 +90,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('admin_email')
     setToken('')
     setAdminEmail('')
+    setAdminSub('')
     setIsAdmin(false)
   }
 
   return (
-    <AuthContext.Provider value={{ isReady, isAdmin, token, adminEmail, login, logout }}>
+    <AuthContext.Provider value={{ isReady, isAdmin, token, adminEmail, adminSub, login, logout }}>
       {children}
     </AuthContext.Provider>
   )
