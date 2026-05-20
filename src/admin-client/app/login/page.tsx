@@ -78,9 +78,6 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="text-xs text-gray-400 mt-5 text-center">
-            Demo mode — any email + password will work
-          </p>
         </div>
       </div>
     </div>

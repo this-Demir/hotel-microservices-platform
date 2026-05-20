@@ -7,7 +7,7 @@ namespace CommentsService.Controllers;
 
 [ApiController]
 [Route("api/v1/comments")]
-public class CommentsController(ICommentService commentService) : ControllerBase
+public class CommentsController(ICommentService commentService, ILogger<CommentsController> logger) : ControllerBase
 {
     [HttpGet("{hotelId:guid}")]
     public async Task<IActionResult> GetByHotel(
@@ -29,7 +29,8 @@ public class CommentsController(ICommentService commentService) : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { error = ex.Message });
+            logger.LogError(ex, "Failed to create comment for user");
+            return StatusCode(500, new { error = "An unexpected error occurred." });
         }
     }
 }
