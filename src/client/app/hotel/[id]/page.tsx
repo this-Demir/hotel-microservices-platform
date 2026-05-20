@@ -42,11 +42,12 @@ function HotelContent({ id }: { id: string }) {
   const today = new Date().toISOString().slice(0, 10)
   const inThreeDays = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10)
 
-  const checkIn = searchParams.get('checkIn') ?? today
-  const checkOut = searchParams.get('checkOut') ?? inThreeDays
-  const guestCount = Number(searchParams.get('guestCount') ?? 2)
+  const checkIn = searchParams.get('checkIn') || today
+  const checkOut = searchParams.get('checkOut') || inThreeDays
+  const guestCount = Math.max(1, Math.floor(Number(searchParams.get('guestCount')) || 2))
 
   const [hotel, setHotel] = useState<MockHotel | null>(null)
+  const [hotelLoading, setHotelLoading] = useState(true)
   const [tab, setTab] = useState<'rooms' | 'reviews'>('rooms')
   const [bookingRoom, setBookingRoom] = useState<SearchResultItem | null>(null)
   const [comments, setComments] = useState<CommentResponse[]>([])
@@ -55,7 +56,11 @@ function HotelContent({ id }: { id: string }) {
   const [averageRating, setAverageRating] = useState(0)
 
   useEffect(() => {
-    getHotelById(id).then(setHotel)
+    setHotelLoading(true)
+    getHotelById(id)
+      .then(setHotel)
+      .catch(() => setHotel(null))
+      .finally(() => setHotelLoading(false))
   }, [id])
 
   useEffect(() => {
@@ -69,6 +74,14 @@ function HotelContent({ id }: { id: string }) {
       })
       .catch(() => setCommentsLoading(false))
   }, [id])
+
+  if (hotelLoading) {
+    return (
+      <div className="max-w-7xl mx-auto px-5 sm:px-8 py-20 flex justify-center">
+        <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
 
   if (!hotel) {
     return (

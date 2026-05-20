@@ -59,7 +59,8 @@ export function CommentForm({ hotelId, token, onSubmitted }: Props) {
     e.preventDefault()
     if (overallRating === 0) { setError('Please select an overall rating.'); return }
     const text = editor?.getHTML() ?? ''
-    if (!text || text === '<p></p>') { setError('Please write your review.'); return }
+    const plain = text.replace(/<[^>]*>/g, '').trim()
+    if (!plain) { setError('Please write your review.'); return }
     setError('')
     setSubmitting(true)
     try {

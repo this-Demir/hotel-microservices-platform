@@ -2,6 +2,14 @@ import type { MockHotel, NotificationResponse, ChatMessage, MockCity } from '@/l
 
 const img = (slug: string) => `https://picsum.photos/seed/${slug}/1200/800`
 
+const hotelImgs: Record<string, string> = {
+  'istanbul-bosphorus-hotel': 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1200&q=80',
+  'paris-eiffel-suites':      'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=1200&q=80',
+  'bali-jungle-retreat':      'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=1200&q=80',
+  'manhattan-heights-hotel':  'https://images.unsplash.com/photo-1445019980597-93fa8acb246c?w=1200&q=80',
+}
+const hotelImg = (slug: string) => hotelImgs[slug] ?? img(slug)
+
 export const mockHotels: MockHotel[] = [
   {
     id: 'h-istanbul',
@@ -9,7 +17,7 @@ export const mockHotels: MockHotel[] = [
     location: 'Istanbul, Türkiye',
     description:
       'A historic waterfront landmark on the European bank of the Bosphorus. Marble lobbies, rooftop pool with a clear view of the strait, and breakfast that runs until noon.',
-    imageUrl: img('istanbul-bosphorus-hotel'),
+    imageUrl: hotelImg('istanbul-bosphorus-hotel'),
     starRating: 4,
     rooms: [
       {
@@ -17,7 +25,7 @@ export const mockHotels: MockHotel[] = [
         hotelId: 'h-istanbul',
         hotelName: 'Grand Bosphorus Hotel',
         location: 'Istanbul, Türkiye',
-        hotelImageUrl: img('istanbul-bosphorus-hotel'),
+        hotelImageUrl: hotelImg('istanbul-bosphorus-hotel'),
         roomType: 'Deluxe Room',
         price: 120,
         starRating: 4,
@@ -29,7 +37,7 @@ export const mockHotels: MockHotel[] = [
         hotelId: 'h-istanbul',
         hotelName: 'Grand Bosphorus Hotel',
         location: 'Istanbul, Türkiye',
-        hotelImageUrl: img('istanbul-bosphorus-hotel'),
+        hotelImageUrl: hotelImg('istanbul-bosphorus-hotel'),
         roomType: 'Bosphorus Suite',
         price: 220,
         starRating: 4,
@@ -64,7 +72,7 @@ export const mockHotels: MockHotel[] = [
     location: 'Paris, France',
     description:
       'Hausmann-era building two blocks from the Champ-de-Mars. Floor-to-ceiling windows, herringbone parquet, an honesty bar in the salon.',
-    imageUrl: img('paris-eiffel-suites'),
+    imageUrl: hotelImg('paris-eiffel-suites'),
     starRating: 5,
     rooms: [
       {
@@ -72,7 +80,7 @@ export const mockHotels: MockHotel[] = [
         hotelId: 'h-paris',
         hotelName: 'Eiffel Luxury Suites',
         location: 'Paris, France',
-        hotelImageUrl: img('paris-eiffel-suites'),
+        hotelImageUrl: hotelImg('paris-eiffel-suites'),
         roomType: 'Classic Room',
         price: 250,
         starRating: 5,
@@ -84,7 +92,7 @@ export const mockHotels: MockHotel[] = [
         hotelId: 'h-paris',
         hotelName: 'Eiffel Luxury Suites',
         location: 'Paris, France',
-        hotelImageUrl: img('paris-eiffel-suites'),
+        hotelImageUrl: hotelImg('paris-eiffel-suites'),
         roomType: 'Panorama Suite',
         price: 400,
         starRating: 5,
@@ -119,7 +127,7 @@ export const mockHotels: MockHotel[] = [
     location: 'Ubud, Bali',
     description:
       'Treetop villas overlooking the Ayung river gorge. Open-air bathrooms, daily yoga at the pavilion, breakfast brought to your deck on a teak tray.',
-    imageUrl: img('bali-jungle-retreat'),
+    imageUrl: hotelImg('bali-jungle-retreat'),
     starRating: 4,
     rooms: [
       {
@@ -127,7 +135,7 @@ export const mockHotels: MockHotel[] = [
         hotelId: 'h-bali',
         hotelName: 'Bali Jungle Retreat',
         location: 'Ubud, Bali',
-        hotelImageUrl: img('bali-jungle-retreat'),
+        hotelImageUrl: hotelImg('bali-jungle-retreat'),
         roomType: 'Garden Villa',
         price: 95,
         starRating: 4,
@@ -139,7 +147,7 @@ export const mockHotels: MockHotel[] = [
         hotelId: 'h-bali',
         hotelName: 'Bali Jungle Retreat',
         location: 'Ubud, Bali',
-        hotelImageUrl: img('bali-jungle-retreat'),
+        hotelImageUrl: hotelImg('bali-jungle-retreat'),
         roomType: 'Pool Suite',
         price: 180,
         starRating: 4,
@@ -174,7 +182,7 @@ export const mockHotels: MockHotel[] = [
     location: 'New York, USA',
     description:
       'Midtown high-rise with skyline-facing rooms from floor 28 up. Lobby bar pours a serious old-fashioned; gym is open 24 hours.',
-    imageUrl: img('manhattan-heights-hotel'),
+    imageUrl: hotelImg('manhattan-heights-hotel'),
     starRating: 4,
     rooms: [
       {
@@ -182,7 +190,7 @@ export const mockHotels: MockHotel[] = [
         hotelId: 'h-nyc',
         hotelName: 'Manhattan Heights Hotel',
         location: 'New York, USA',
-        hotelImageUrl: img('manhattan-heights-hotel'),
+        hotelImageUrl: hotelImg('manhattan-heights-hotel'),
         roomType: 'City View Room',
         price: 310,
         starRating: 4,
@@ -194,7 +202,7 @@ export const mockHotels: MockHotel[] = [
         hotelId: 'h-nyc',
         hotelName: 'Manhattan Heights Hotel',
         location: 'New York, USA',
-        hotelImageUrl: img('manhattan-heights-hotel'),
+        hotelImageUrl: hotelImg('manhattan-heights-hotel'),
         roomType: 'Penthouse',
         price: 580,
         starRating: 4,
@@ -250,10 +258,22 @@ export const mockNotifications: NotificationResponse[] = [
 ]
 
 export const mockCities: MockCity[] = [
-  { name: 'Istanbul', country: 'Türkiye',   hotelId: 'h-istanbul', img: img('istanbul-city') },
-  { name: 'Paris',    country: 'France',    hotelId: 'h-paris',    img: img('paris-city')    },
-  { name: 'Bali',     country: 'Indonesia', hotelId: 'h-bali',     img: img('bali-city')     },
-  { name: 'New York', country: 'USA',       hotelId: 'h-nyc',      img: img('newyork-city')  },
+  {
+    name: 'Istanbul', country: 'Türkiye', hotelId: 'h-istanbul',
+    img: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=800&q=80',
+  },
+  {
+    name: 'Paris', country: 'France', hotelId: 'h-paris',
+    img: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&q=80',
+  },
+  {
+    name: 'Bali', country: 'Indonesia', hotelId: 'h-bali',
+    img: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=800&q=80',
+  },
+  {
+    name: 'New York', country: 'USA', hotelId: 'h-nyc',
+    img: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=800&q=80',
+  },
 ]
 
 export const mockChatHistory: ChatMessage[] = [

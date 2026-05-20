@@ -61,9 +61,9 @@ function SearchContent() {
   const { isLoggedIn } = useAuth()
 
   const location   = searchParams.get('location') ?? ''
-  const checkIn    = searchParams.get('checkIn')  ?? new Date().toISOString().slice(0, 10)
-  const checkOut   = searchParams.get('checkOut') ?? new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10)
-  const guestCount = Number(searchParams.get('guestCount') ?? 2)
+  const checkIn    = searchParams.get('checkIn')  || new Date().toISOString().slice(0, 10)
+  const checkOut   = searchParams.get('checkOut') || new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10)
+  const guestCount = Math.max(1, Math.floor(Number(searchParams.get('guestCount')) || 2))
 
   const [results,     setResults]     = useState<SearchResultItem[]>([])
   const [loading,     setLoading]     = useState(true)
@@ -99,6 +99,7 @@ function SearchContent() {
   }, [location, checkIn, checkOut, guestCount])
 
   async function loadMore() {
+    if (loadingMore) return
     const nextPage = page + 1
     setLoadingMore(true)
     try {

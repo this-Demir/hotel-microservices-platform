@@ -32,6 +32,16 @@ function cognitoFetch(target: string, body: object) {
   })
 }
 
+function safeGet(key: string): string | null {
+  try { return localStorage.getItem(key) } catch { return null }
+}
+function safeSet(key: string, value: string): void {
+  try { localStorage.setItem(key, value) } catch { /* storage unavailable */ }
+}
+function safeRemove(key: string): void {
+  try { localStorage.removeItem(key) } catch { /* storage unavailable */ }
+}
+
 function parseJwt(token: string): Record<string, unknown> | null {
   try {
     return JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')))
@@ -48,9 +58,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
 
   const applyTokens = useCallback((accessToken: string, idToken: string, refreshToken: string) => {
-    localStorage.setItem('se_access', accessToken)
-    localStorage.setItem('se_refresh', refreshToken)
-    localStorage.setItem('se_id', idToken)
+    safeSet('se_access', accessToken)
+    safeSet('se_refresh', refreshToken)
+    safeSet('se_id', idToken)
     const claims = parseJwt(idToken)
     setToken(idToken)
     setUser({
@@ -62,9 +72,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    const access = localStorage.getItem('se_access')
-    const id = localStorage.getItem('se_id')
-    const refresh = localStorage.getItem('se_refresh')
+    const access = safeGet('se_access')
+    const id = safeGet('se_id')
+    const refresh = safeGet('se_refresh')
     if (!access || !id || !refresh) return
 
     const claims = parseJwt(access)
@@ -86,9 +96,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [applyTokens])
 
   function clearStorage() {
-    localStorage.removeItem('se_access')
-    localStorage.removeItem('se_refresh')
-    localStorage.removeItem('se_id')
+    safeRemove('se_access')
+    safeRemove('se_refresh')
+    safeRemove('se_id')
   }
 
   async function login(email: string, password: string) {

@@ -460,6 +460,14 @@ export function ChatWidget() {
 
   const handleBookNow = async (item: SearchResultItem, payload: AgentSearchPayload) => {
     if (!token || bookingRoomId) return
+
+    const ciMs = new Date(payload.checkIn).getTime()
+    const coMs = new Date(payload.checkOut).getTime()
+    if (!payload.checkIn || !payload.checkOut || isNaN(ciMs) || isNaN(coMs) || payload.checkOut <= payload.checkIn) {
+      setMessages((m) => [...m, { role: 'assistant', content: 'I couldn\'t complete the booking — the dates look invalid. Please try again with valid check-in and check-out dates.' }])
+      return
+    }
+
     setBookingRoomId(item.roomId)
 
     const userMsg = `Book the ${item.roomType} room at ${item.hotelName}`

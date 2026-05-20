@@ -6,7 +6,8 @@ import { useAuth } from '@/lib/auth-context'
 import { getReservations } from '@/lib/api'
 
 function initials(name: string) {
-  return name.split(/\s+/).slice(0, 2).map((s) => s[0]).join('').toUpperCase()
+  const s = name.split(/\s+/).slice(0, 2).map((s) => s[0]).join('').toUpperCase()
+  return s || '?'
 }
 
 function InfoRow({ label, value }: { label: string; value: string }) {

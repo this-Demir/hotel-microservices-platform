@@ -77,7 +77,7 @@ function BookingCard({ r }: { r: ReservationResponse }) {
 
       {/* Price */}
       <div className="text-right flex-shrink-0">
-        <p className="text-lg font-bold text-slate-900">${r.pricePaid.toFixed(2)}</p>
+        <p className="text-lg font-bold text-slate-900">${(r.pricePaid ?? 0).toFixed(2)}</p>
         <p className="text-xs text-slate-400">total paid</p>
       </div>
     </div>
@@ -107,6 +107,7 @@ export default function BookingsPage() {
 
   const [data, setData] = useState<PagedResult<ReservationResponse> | null>(null)
   const [page, setPage] = useState(1)
+  const [retryKey, setRetryKey] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -124,7 +125,7 @@ export default function BookingsPage() {
       .then(setData)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
-  }, [isLoggedIn, token, page])
+  }, [isLoggedIn, token, page, retryKey])
 
   if (!isLoggedIn) return null
 
@@ -149,7 +150,7 @@ export default function BookingsPage() {
             <p className="text-red-700 font-medium">Failed to load bookings</p>
             <p className="text-red-500 text-sm mt-1">{error}</p>
             <button
-              onClick={() => setPage((p) => p)}
+              onClick={() => { setError(null); setRetryKey((k) => k + 1) }}
               className="mt-3 px-4 py-2 text-sm font-semibold bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
             >
               Retry

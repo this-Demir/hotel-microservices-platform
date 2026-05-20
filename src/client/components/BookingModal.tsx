@@ -49,7 +49,12 @@ export function BookingModal({ open = true, room, hotel, checkIn, checkOut, gues
 
   if (!open || !room) return null
 
-  const nights = Math.max(1, Math.round((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 86400000))
+  const checkInMs = new Date(checkIn).getTime()
+  const checkOutMs = new Date(checkOut).getTime()
+  const datesValid = checkIn && checkOut && !isNaN(checkInMs) && !isNaN(checkOutMs) && checkOut > checkIn
+  const nights = datesValid
+    ? Math.max(1, Math.round((checkOutMs - checkInMs) / 86400000))
+    : 1
   const base = room.price * nights
   const discounted = Math.round(base * 0.85)
   const total = isLoggedIn ? discounted : base
@@ -59,6 +64,15 @@ export function BookingModal({ open = true, room, hotel, checkIn, checkOut, gues
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!token) return
+    if (!datesValid) {
+      setToast(
+        !checkIn || !checkOut
+          ? 'Please select check-in and check-out dates before booking.'
+          : 'Check-out date must be after check-in.',
+      )
+      setTimeout(() => setToast(''), 3500)
+      return
+    }
     setSubmitting(true)
     try {
       await bookRoom({ roomId: room.roomId, checkIn, checkOut, guestCount }, token)
