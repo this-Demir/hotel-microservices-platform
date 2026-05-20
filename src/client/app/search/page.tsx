@@ -65,15 +65,19 @@ function SearchContent() {
   const checkOut   = searchParams.get('checkOut') ?? new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10)
   const guestCount = Number(searchParams.get('guestCount') ?? 2)
 
-  const [results,    setResults]    = useState<SearchResultItem[]>([])
-  const [loading,    setLoading]    = useState(true)
-  const [error,      setError]      = useState<string | null>(null)
-  const [view,       setView]       = useState<'list' | 'split' | 'map'>('split')
-  const [priceMax,   setPriceMax]   = useState(700)
-  const [stars,      setStars]      = useState<Record<number, boolean>>({ 5: false, 4: false, 3: false })
-  const [hoveredId,  setHoveredId]  = useState<string | null>(null)
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [results,     setResults]     = useState<SearchResultItem[]>([])
+  const [loading,     setLoading]     = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [error,       setError]       = useState<string | null>(null)
+  const [page,        setPage]        = useState(1)
+  const [totalCount,  setTotalCount]  = useState(0)
+  const [view,        setView]        = useState<'list' | 'split' | 'map'>('split')
+  const [priceMax,    setPriceMax]    = useState(700)
+  const [stars,       setStars]       = useState<Record<number, boolean>>({ 5: false, 4: false, 3: false })
+  const [hoveredId,   setHoveredId]   = useState<string | null>(null)
+  const [selectedId,  setSelectedId]  = useState<string | null>(null)
 
+  const PAGE_SIZE = 10
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({})
 
   useEffect(() => {
@@ -81,11 +85,31 @@ function SearchContent() {
     setLoading(true)
     setError(null)
     setSelectedId(null)
-    searchHotels({ location, checkIn, checkOut, guestCount })
-      .then((res) => { if (alive) { setResults(res.items); setLoading(false) } })
+    setPage(1)
+    searchHotels({ location, checkIn, checkOut, guestCount, page: 1, pageSize: PAGE_SIZE })
+      .then((res) => {
+        if (alive) {
+          setResults(res.items)
+          setTotalCount(res.totalCount)
+          setLoading(false)
+        }
+      })
       .catch(() => { if (alive) { setError('Could not reach the server. Please try again.'); setLoading(false) } })
     return () => { alive = false }
   }, [location, checkIn, checkOut, guestCount])
+
+  async function loadMore() {
+    const nextPage = page + 1
+    setLoadingMore(true)
+    try {
+      const res = await searchHotels({ location, checkIn, checkOut, guestCount, page: nextPage, pageSize: PAGE_SIZE })
+      setResults((prev) => [...prev, ...res.items])
+      setTotalCount(res.totalCount)
+      setPage(nextPage)
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   // scroll card into view when a map pin is selected
   useEffect(() => {
@@ -122,7 +146,9 @@ function SearchContent() {
     <div className="flex items-end justify-between gap-4 mb-4">
       <div>
         <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900">
-          {loading ? 'Searching…' : `${items.length} ${items.length === 1 ? 'stay' : 'stays'} found`}
+          {loading ? 'Searching…' : totalCount > 0
+            ? `Showing ${items.length} of ${totalCount} ${totalCount === 1 ? 'stay' : 'stays'}`
+            : 'No stays found'}
         </h2>
         <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
           {location ? <><span className="font-semibold text-slate-700">{location}</span> · </> : 'All destinations · '}
@@ -257,22 +283,35 @@ function SearchContent() {
                 <p className="text-sm text-slate-500 mt-1">{error}</p>
               </div>
             ) : items.length === 0 ? emptyState : (
-              <div className="grid sm:grid-cols-2 gap-4">
-                {items.map((item) => (
-                  <div key={item.roomId} ref={(el) => { cardRefs.current[item.hotelId] = el }}>
-                    <HotelCardCompact
-                      item={item}
-                      hotel={hotelsById[item.hotelId]}
-                      isLoggedIn={isLoggedIn}
-                      isHovered={hoveredId === item.hotelId}
-                      isSelected={selectedId === item.hotelId}
-                      onMouseEnter={() => setHoveredId(item.hotelId)}
-                      onMouseLeave={() => setHoveredId(null)}
-                      onView={() => goToHotel(item.hotelId)}
-                    />
+              <>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {items.map((item) => (
+                    <div key={item.roomId} ref={(el) => { cardRefs.current[item.hotelId] = el }}>
+                      <HotelCardCompact
+                        item={item}
+                        hotel={hotelsById[item.hotelId]}
+                        isLoggedIn={isLoggedIn}
+                        isHovered={hoveredId === item.hotelId}
+                        isSelected={selectedId === item.hotelId}
+                        onMouseEnter={() => setHoveredId(item.hotelId)}
+                        onMouseLeave={() => setHoveredId(null)}
+                        onView={() => goToHotel(item.hotelId)}
+                      />
+                    </div>
+                  ))}
+                </div>
+                {results.length < totalCount && (
+                  <div className="mt-6 flex justify-center">
+                    <button
+                      onClick={loadMore}
+                      disabled={loadingMore}
+                      className="px-8 py-3 rounded-full bg-slate-900 text-white text-sm font-semibold hover:bg-slate-700 disabled:opacity-50 transition"
+                    >
+                      {loadingMore ? 'Loading…' : `Show more (${totalCount - results.length} remaining)`}
+                    </button>
                   </div>
-                ))}
-              </div>
+                )}
+              </>
             )}
             {memberUpsell}
           </div>
@@ -356,15 +395,30 @@ function SearchContent() {
                     </div>
                   )
                   : items.length === 0 ? emptyState
-                    : items.map((item) => (
-                      <HotelCard
-                        key={item.roomId}
-                        item={item}
-                        hotel={hotelsById[item.hotelId]}
-                        isLoggedIn={isLoggedIn}
-                        onView={() => goToHotel(item.hotelId)}
-                      />
-                    ))
+                    : (
+                      <>
+                        {items.map((item) => (
+                          <HotelCard
+                            key={item.roomId}
+                            item={item}
+                            hotel={hotelsById[item.hotelId]}
+                            isLoggedIn={isLoggedIn}
+                            onView={() => goToHotel(item.hotelId)}
+                          />
+                        ))}
+                        {results.length < totalCount && (
+                          <div className="flex justify-center pt-4">
+                            <button
+                              onClick={loadMore}
+                              disabled={loadingMore}
+                              className="px-8 py-3 rounded-full bg-slate-900 text-white text-sm font-semibold hover:bg-slate-700 disabled:opacity-50 transition"
+                            >
+                              {loadingMore ? 'Loading…' : `Show more (${totalCount - results.length} remaining)`}
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    )
               }
             </div>
           </main>

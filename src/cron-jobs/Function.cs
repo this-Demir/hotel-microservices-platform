@@ -85,18 +85,61 @@ public class Function
     private static async Task SendAlertEmailAsync(
         string apiKey, string from, CapacityAlert alert, ILambdaLogger logger)
     {
+        var barWidth = (int)Math.Round(100 - alert.RemainingPct);
+        var barColor = alert.RemainingPct < 15 ? "#dc2626" : "#f59e0b";
+        var pctColor = alert.RemainingPct < 15 ? "#dc2626" : "#d97706";
+        var html = $"""
+            <!DOCTYPE html>
+            <html lang="en">
+            <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+            <body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:40px 0;">
+                <tr><td align="center">
+                  <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+                    <tr><td style="background:linear-gradient(135deg,#b45309,#d97706);border-radius:16px 16px 0 0;padding:36px 40px;text-align:center;">
+                      <div style="font-size:28px;font-weight:800;color:#fff;letter-spacing:-0.5px;">StayEase Admin</div>
+                      <div style="margin-top:6px;font-size:13px;color:#fde68a;letter-spacing:1px;text-transform:uppercase;">⚠ Capacity Alert</div>
+                    </td></tr>
+                    <tr><td style="background:#fff;padding:40px;">
+                      <div style="text-align:center;margin-bottom:28px;">
+                        <div style="display:inline-block;background:#fef3c7;border-radius:50%;width:64px;height:64px;line-height:64px;font-size:32px;">⚠</div>
+                        <div style="margin-top:14px;font-size:22px;font-weight:700;color:#0f172a;">Low Availability Detected</div>
+                        <div style="margin-top:6px;font-size:14px;color:#64748b;">Action may be required for next month.</div>
+                      </div>
+                      <table width="100%" cellpadding="0" cellspacing="0" style="background:#fffbeb;border-radius:12px;border:1px solid #fcd34d;overflow:hidden;margin-bottom:24px;">
+                        <tr><td style="padding:20px 24px;border-bottom:1px solid #fde68a;">
+                          <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#92400e;">Property</div>
+                          <div style="font-size:18px;font-weight:700;color:#0f172a;margin-top:4px;">{alert.HotelName}</div>
+                          <div style="font-size:13px;color:#64748b;margin-top:2px;">{alert.RoomType}</div>
+                        </td></tr>
+                        <tr><td style="padding:20px 24px;">
+                          <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#92400e;margin-bottom:10px;">Remaining Capacity — Next Month</div>
+                          <div style="background:#e5e7eb;border-radius:99px;height:12px;overflow:hidden;margin-bottom:8px;">
+                            <div style="background:{barColor};height:12px;width:{barWidth}%;border-radius:99px;"></div>
+                          </div>
+                          <div style="font-size:28px;font-weight:800;color:{pctColor};margin-top:4px;">{alert.RemainingPct:F1}% remaining</div>
+                        </td></tr>
+                      </table>
+                      <div style="text-align:center;margin-bottom:24px;">
+                        <a href="https://hotel-admin-client.vercel.app" style="display:inline-block;background:#b45309;color:#fff;font-size:14px;font-weight:700;padding:14px 32px;border-radius:99px;text-decoration:none;">Open Admin Panel →</a>
+                      </div>
+                      <div style="font-size:13px;color:#94a3b8;text-align:center;">This alert was generated automatically by the StayEase nightly capacity checker.</div>
+                    </td></tr>
+                    <tr><td style="background:#f8fafc;border-radius:0 0 16px 16px;padding:24px 40px;text-align:center;border-top:1px solid #e2e8f0;">
+                      <div style="font-size:12px;color:#94a3b8;">© 2026 StayEase · All rights reserved</div>
+                    </td></tr>
+                  </table>
+                </td></tr>
+              </table>
+            </body>
+            </html>
+            """;
         var payload = JsonSerializer.Serialize(new
         {
             from,
             to      = new[] { alert.AdminEmail },
             subject = $"Low Capacity Alert — {alert.HotelName}",
-            html    = $"""
-                <h2>Low Capacity Warning</h2>
-                <p><strong>Hotel:</strong> {alert.HotelName}</p>
-                <p><strong>Room Type:</strong> {alert.RoomType}</p>
-                <p>Remaining capacity for next month is <strong>{alert.RemainingPct:F1}%</strong>.</p>
-                <p>Consider reviewing your availability settings.</p>
-                """,
+            html,
         });
 
         using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.resend.com/emails");
