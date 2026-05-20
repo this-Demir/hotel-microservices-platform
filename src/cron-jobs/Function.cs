@@ -51,7 +51,8 @@ public class Function
                 ra."ReservedCount",
                 r."RoomType",
                 h."Name"       AS hotel_name,
-                h."AdminEmail"
+                h."AdminEmail",
+                h."AdminSub"
             FROM "RoomAvailabilities" ra
             JOIN "Rooms"  r  ON ra."RoomId"  = r."Id"
             JOIN "Hotels" h  ON r."HotelId"  = h."Id",
@@ -69,10 +70,12 @@ public class Function
         {
             var total    = reader.GetInt32(reader.GetOrdinal("TotalCapacity"));
             var reserved = reader.GetInt32(reader.GetOrdinal("ReservedCount"));
+            var adminSubOrdinal = reader.GetOrdinal("AdminSub");
             results.Add(new CapacityAlert(
                 HotelName:      reader.GetString(reader.GetOrdinal("hotel_name")),
                 RoomType:       reader.GetString(reader.GetOrdinal("RoomType")),
                 AdminEmail:     reader.GetString(reader.GetOrdinal("AdminEmail")),
+                AdminSub:       reader.IsDBNull(adminSubOrdinal) ? null : reader.GetString(adminSubOrdinal),
                 RemainingPct:   100.0 * (total - reserved) / total));
         }
 
@@ -116,7 +119,7 @@ public class Function
                 VALUES (@id, @userId, @title, @body, false, now())
                 """;
             cmd.Parameters.AddWithValue("@id",     Guid.NewGuid());
-            cmd.Parameters.AddWithValue("@userId", alert.AdminEmail);
+            cmd.Parameters.AddWithValue("@userId", alert.AdminSub ?? "");
             cmd.Parameters.AddWithValue("@title",  $"Low Capacity — {alert.HotelName}");
             cmd.Parameters.AddWithValue("@body",
                 $"{alert.RoomType} at {alert.HotelName} has only {alert.RemainingPct:F1}% capacity remaining for next month.");
@@ -132,5 +135,6 @@ public class Function
         string HotelName,
         string RoomType,
         string AdminEmail,
+        string? AdminSub,
         double RemainingPct);
 }
