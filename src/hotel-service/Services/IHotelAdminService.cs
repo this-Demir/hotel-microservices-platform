@@ -20,4 +20,6 @@ public interface IHotelAdminService
     Task<IEnumerable<AvailabilityResponse>> GetAvailabilityAsync(Guid roomId);
     Task<AvailabilityResponse> SetAvailabilityAsync(SetAvailabilityRequest request);
     Task<bool> DeleteAvailabilityAsync(Guid id);
+
+    Task<PagedResult<AdminReservationResponse>> GetAllReservationsAsync(int page, int pageSize);
 }

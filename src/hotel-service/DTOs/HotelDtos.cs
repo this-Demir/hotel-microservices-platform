@@ -1,9 +1,9 @@
 namespace HotelService.DTOs;
 
 // Admin
-public record CreateHotelRequest(string Name, string LocationPoint, string Description, string AdminEmail, double? Latitude = null, double? Longitude = null);
-public record UpdateHotelRequest(string Name, string LocationPoint, string Description, string AdminEmail, double? Latitude = null, double? Longitude = null);
-public record HotelResponse(Guid Id, string Name, string LocationPoint, string Description, string AdminEmail, string? ImageUrl, double? Latitude, double? Longitude);
+public record CreateHotelRequest(string Name, string LocationPoint, string Description, string AdminEmail, double? Latitude = null, double? Longitude = null, string? AdminSub = null);
+public record UpdateHotelRequest(string Name, string LocationPoint, string Description, string AdminEmail, double? Latitude = null, double? Longitude = null, string? AdminSub = null);
+public record HotelResponse(Guid Id, string Name, string LocationPoint, string Description, string AdminEmail, string? ImageUrl, double? Latitude, double? Longitude, string? AdminSub = null);
 
 // Hotel images
 public record UploadImageRequest(string Title, string FileBase64, string ContentType);
@@ -35,6 +35,9 @@ public record PagedResult<T>(IEnumerable<T> Items, int Page, int PageSize, int T
 public record BookRoomRequest(Guid RoomId, DateOnly CheckIn, DateOnly CheckOut, int GuestCount);
 public record BookingResponse(Guid ReservationId, Guid RoomId, DateOnly CheckIn, DateOnly CheckOut, decimal PricePaid);
 public record ReservationResponse(Guid Id, Guid RoomId, string HotelName, string RoomType, DateOnly CheckIn, DateOnly CheckOut, int GuestCount, decimal PricePaid);
+
+// Admin reservations
+public record AdminReservationResponse(Guid Id, string UserId, string HotelName, string RoomType, DateOnly CheckIn, DateOnly CheckOut, int GuestCount, decimal PricePaid);
 
 // Notifications
 public record NotificationResponse(Guid Id, string Title, string Body, bool IsRead, DateTime CreatedAt);

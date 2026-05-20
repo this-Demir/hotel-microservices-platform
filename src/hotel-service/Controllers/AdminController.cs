@@ -117,4 +117,8 @@ public class AdminController(IHotelAdminService adminService) : ControllerBase
             return Conflict(new { error = ex.Message });
         }
     }
+
+    [HttpGet("reservations")]
+    public async Task<IActionResult> GetAllReservations([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        => Ok(await adminService.GetAllReservationsAsync(page, pageSize));
 }

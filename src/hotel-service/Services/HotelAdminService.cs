@@ -19,6 +19,7 @@ public class HotelAdminService(
             LocationPoint = request.LocationPoint,
             Description = request.Description,
             AdminEmail = request.AdminEmail,
+            AdminSub = request.AdminSub,
             Latitude = request.Latitude,
             Longitude = request.Longitude,
         };
@@ -35,6 +36,7 @@ public class HotelAdminService(
         hotel.LocationPoint = request.LocationPoint;
         hotel.Description = request.Description;
         hotel.AdminEmail = request.AdminEmail;
+        hotel.AdminSub = request.AdminSub;
         hotel.Latitude = request.Latitude;
         hotel.Longitude = request.Longitude;
         await db.SaveChangesAsync();
@@ -254,6 +256,24 @@ public class HotelAdminService(
         return true;
     }
 
+    public async Task<PagedResult<AdminReservationResponse>> GetAllReservationsAsync(int page, int pageSize)
+    {
+        var query = db.Reservations
+            .Include(r => r.Room).ThenInclude(r => r.Hotel)
+            .OrderByDescending(r => r.CheckInDate);
+
+        var total = await query.CountAsync();
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(r => new AdminReservationResponse(
+                r.Id, r.UserId, r.Room.Hotel.Name, r.Room.RoomType,
+                r.CheckInDate, r.CheckOutDate, r.GuestCount, r.PricePaid))
+            .ToListAsync();
+
+        return new PagedResult<AdminReservationResponse>(items, page, pageSize, total);
+    }
+
     private static HotelResponse ToResponse(Hotel h) =>
-        new(h.Id, h.Name, h.LocationPoint, h.Description, h.AdminEmail, h.ImageUrl, h.Latitude, h.Longitude);
+        new(h.Id, h.Name, h.LocationPoint, h.Description, h.AdminEmail, h.ImageUrl, h.Latitude, h.Longitude, h.AdminSub);
 }
