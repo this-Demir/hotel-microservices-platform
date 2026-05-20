@@ -1,9 +1,9 @@
 namespace HotelService.DTOs;
 
 // Admin
-public record CreateHotelRequest(string Name, string LocationPoint, string Description, string AdminEmail);
-public record UpdateHotelRequest(string Name, string LocationPoint, string Description, string AdminEmail);
-public record HotelResponse(Guid Id, string Name, string LocationPoint, string Description, string AdminEmail, string? ImageUrl);
+public record CreateHotelRequest(string Name, string LocationPoint, string Description, string AdminEmail, double? Latitude = null, double? Longitude = null);
+public record UpdateHotelRequest(string Name, string LocationPoint, string Description, string AdminEmail, double? Latitude = null, double? Longitude = null);
+public record HotelResponse(Guid Id, string Name, string LocationPoint, string Description, string AdminEmail, string? ImageUrl, double? Latitude, double? Longitude);
 
 // Hotel images
 public record UploadImageRequest(string Title, string FileBase64, string ContentType);
@@ -27,8 +27,8 @@ public record SearchRequest(string? Location, DateOnly? CheckIn, DateOnly? Check
     public DateOnly ResolvedCheckIn  => CheckIn  ?? DateOnly.FromDateTime(DateTime.UtcNow);
     public DateOnly ResolvedCheckOut => CheckOut ?? DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1));
 }
-public record SearchResultItem(Guid RoomId, Guid HotelId, string HotelName, string Location, string? HotelImageUrl, string RoomType, decimal Price);
-public record RoomDetailResponse(Guid RoomId, Guid HotelId, string HotelName, string Location, string? HotelImageUrl, string RoomType, decimal Price);
+public record SearchResultItem(Guid RoomId, Guid HotelId, string HotelName, string Location, string? HotelImageUrl, string RoomType, decimal Price, double? Latitude = null, double? Longitude = null);
+public record RoomDetailResponse(Guid RoomId, Guid HotelId, string HotelName, string Location, string? HotelImageUrl, string RoomType, decimal Price, double? Latitude = null, double? Longitude = null);
 public record PagedResult<T>(IEnumerable<T> Items, int Page, int PageSize, int TotalCount);
 
 // Booking

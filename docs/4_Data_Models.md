@@ -5,8 +5,10 @@
 **Table: Hotels**
 - `Id` (UUID, Primary Key)
 - `Name` (String)
-- `LocationPoint` (String — "latitude,longitude" e.g. "41.0082,28.9784")
+- `LocationPoint` (String — human-readable location name, e.g. "Istanbul, Turkey"; used for text search)
 - `Description` (Text)
+- `Latitude` (Double, nullable — decimal degrees, used for map pins)
+- `Longitude` (Double, nullable — decimal degrees, used for map pins)
 
 **Table: Rooms**
 - `Id` (UUID, Primary Key)
@@ -65,7 +67,9 @@ Strictly used by `comments-service` only.
 ```
 
 ## 3. Assumptions Documented
-- `LocationPoint` is stored as a `"lat,lng"` string. Geospatial queries are not required — the frontend map provider (e.g., Leaflet/OpenStreetMap) parses this string directly.
+- `LocationPoint` is a plain text field used for keyword search (`LIKE '%Istanbul%'`). It is NOT parsed as coordinates.
+- `Latitude` / `Longitude` are separate nullable double columns used exclusively for map pin rendering (react-leaflet). Hotels without coords are silently skipped on the map. Admin sets these via a Leaflet map picker in the admin panel.
+- `SearchResultItem` DTO exposes both `Latitude` and `Longitude` so the user client map gets coords without an extra API call.
 - `PricePaid` is stored on `Reservations` to preserve the price at booking time, independent of any future `BasePrice` changes.
 - `GuestCount` is stored on `Reservations` to reconstruct what was booked (users search by number of guests).
 - Comments can be posted by any authenticated user (not restricted to verified guests). Documented as an assumption.

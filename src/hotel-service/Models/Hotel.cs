@@ -8,6 +8,8 @@ public class Hotel
     public string Description { get; set; } = string.Empty;
     public string AdminEmail { get; set; } = string.Empty;
     public string? ImageUrl { get; set; }
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
 
     public ICollection<Room> Rooms { get; set; } = new List<Room>();
 }

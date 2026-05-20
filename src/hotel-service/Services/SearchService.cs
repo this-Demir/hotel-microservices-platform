@@ -53,7 +53,9 @@ public class SearchService(HotelDbContext db, IConnectionMultiplexer redis) : IS
                 ra.Room.RoomType,
                 isAuthenticated
                     ? Math.Round(ra.Room.BasePrice * 0.85m, 2)
-                    : ra.Room.BasePrice))
+                    : ra.Room.BasePrice,
+                ra.Room.Hotel.Latitude,
+                ra.Room.Hotel.Longitude))
             .ToListAsync();
 
         var result = new PagedResult<SearchResultItem>(items, request.Page, request.PageSize, total);
@@ -76,7 +78,7 @@ public class SearchService(HotelDbContext db, IConnectionMultiplexer redis) : IS
 
         return new RoomDetailResponse(
             room.Id, room.HotelId, room.Hotel.Name, room.Hotel.LocationPoint,
-            room.Hotel.ImageUrl, room.RoomType, price);
+            room.Hotel.ImageUrl, room.RoomType, price, room.Hotel.Latitude, room.Hotel.Longitude);
     }
 
     public async Task<HotelDetailResponse?> GetHotelDetailAsync(Guid hotelId, bool isAuthenticated)
@@ -90,7 +92,8 @@ public class SearchService(HotelDbContext db, IConnectionMultiplexer redis) : IS
             .Where(ra => ra.Room.HotelId == hotelId && ra.IsVacant && ra.EndDate >= today)
             .Select(ra => new SearchResultItem(
                 ra.RoomId, hotelId, hotel.Name, hotel.LocationPoint, hotel.ImageUrl, ra.Room.RoomType,
-                isAuthenticated ? Math.Round(ra.Room.BasePrice * 0.85m, 2) : ra.Room.BasePrice))
+                isAuthenticated ? Math.Round(ra.Room.BasePrice * 0.85m, 2) : ra.Room.BasePrice,
+                hotel.Latitude, hotel.Longitude))
             .Distinct()
             .ToListAsync();
 

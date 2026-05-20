@@ -19,6 +19,8 @@ public class HotelAdminService(
             LocationPoint = request.LocationPoint,
             Description = request.Description,
             AdminEmail = request.AdminEmail,
+            Latitude = request.Latitude,
+            Longitude = request.Longitude,
         };
         db.Hotels.Add(hotel);
         await db.SaveChangesAsync();
@@ -33,6 +35,8 @@ public class HotelAdminService(
         hotel.LocationPoint = request.LocationPoint;
         hotel.Description = request.Description;
         hotel.AdminEmail = request.AdminEmail;
+        hotel.Latitude = request.Latitude;
+        hotel.Longitude = request.Longitude;
         await db.SaveChangesAsync();
         return ToResponse(hotel);
     }
@@ -251,5 +255,5 @@ public class HotelAdminService(
     }
 
     private static HotelResponse ToResponse(Hotel h) =>
-        new(h.Id, h.Name, h.LocationPoint, h.Description, h.AdminEmail, h.ImageUrl);
+        new(h.Id, h.Name, h.LocationPoint, h.Description, h.AdminEmail, h.ImageUrl, h.Latitude, h.Longitude);
 }
