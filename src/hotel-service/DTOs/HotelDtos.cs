@@ -4,38 +4,38 @@ namespace HotelService.DTOs;
 
 // Admin
 public record CreateHotelRequest(
-    [property: Required, MinLength(2), MaxLength(200)] string Name,
-    [property: Required, MinLength(2), MaxLength(200)] string LocationPoint,
-    [property: Required, MaxLength(2000)] string Description,
-    [property: Required, EmailAddress] string AdminEmail,
-    [property: Range(-90.0, 90.0)] double? Latitude = null,
-    [property: Range(-180.0, 180.0)] double? Longitude = null,
+    [Required, MinLength(2), MaxLength(200)] string Name,
+    [Required, MinLength(2), MaxLength(200)] string LocationPoint,
+    [Required, MaxLength(2000)] string Description,
+    [Required, EmailAddress] string AdminEmail,
+    [Range(-90.0, 90.0)] double? Latitude = null,
+    [Range(-180.0, 180.0)] double? Longitude = null,
     string? AdminSub = null);
 
 public record UpdateHotelRequest(
-    [property: Required, MinLength(2), MaxLength(200)] string Name,
-    [property: Required, MinLength(2), MaxLength(200)] string LocationPoint,
-    [property: Required, MaxLength(2000)] string Description,
-    [property: Required, EmailAddress] string AdminEmail,
-    [property: Range(-90.0, 90.0)] double? Latitude = null,
-    [property: Range(-180.0, 180.0)] double? Longitude = null,
+    [Required, MinLength(2), MaxLength(200)] string Name,
+    [Required, MinLength(2), MaxLength(200)] string LocationPoint,
+    [Required, MaxLength(2000)] string Description,
+    [Required, EmailAddress] string AdminEmail,
+    [Range(-90.0, 90.0)] double? Latitude = null,
+    [Range(-180.0, 180.0)] double? Longitude = null,
     string? AdminSub = null);
 
 public record HotelResponse(Guid Id, string Name, string LocationPoint, string Description, string AdminEmail, string? ImageUrl, double? Latitude, double? Longitude, string? AdminSub = null);
 
 // Hotel images
 public record UploadImageRequest(
-    [property: Required, MaxLength(120)] string Title,
-    [property: Required] string FileBase64,
-    [property: Required] string ContentType);
+    [Required, MaxLength(120)] string Title,
+    [Required] string FileBase64,
+    [Required] string ContentType);
 
 public record HotelImageResponse(Guid Id, Guid HotelId, string Title, string ImageUrl, DateTime CreatedAt);
 
 // Rooms
 public record CreateRoomRequest(
     Guid HotelId,
-    [property: Required, MinLength(2), MaxLength(60)] string RoomType,
-    [property: Range(typeof(decimal), "0.01", "100000")] decimal BasePrice
+    [Required, MinLength(2), MaxLength(60)] string RoomType,
+    [Range(typeof(decimal), "0.01", "100000")] decimal BasePrice
 ) : IValidatableObject
 {
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
@@ -46,8 +46,8 @@ public record CreateRoomRequest(
 }
 
 public record UpdateRoomRequest(
-    [property: Required, MinLength(2), MaxLength(60)] string RoomType,
-    [property: Range(typeof(decimal), "0.01", "100000")] decimal BasePrice);
+    [Required, MinLength(2), MaxLength(60)] string RoomType,
+    [Range(typeof(decimal), "0.01", "100000")] decimal BasePrice);
 
 public record RoomResponse(Guid Id, Guid HotelId, string RoomType, decimal BasePrice);
 
@@ -57,7 +57,7 @@ public record SetAvailabilityRequest(
     DateOnly StartDate,
     DateOnly EndDate,
     bool IsVacant,
-    [property: Range(1, 1000)] int TotalCapacity
+    [Range(1, 1000)] int TotalCapacity
 ) : IValidatableObject
 {
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
@@ -103,7 +103,7 @@ public record BookRoomRequest(
     Guid RoomId,
     DateOnly CheckIn,
     DateOnly CheckOut,
-    [property: Range(1, 50)] int GuestCount
+    [Range(1, 50)] int GuestCount
 ) : IValidatableObject
 {
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)

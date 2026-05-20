@@ -3,17 +3,17 @@ using System.ComponentModel.DataAnnotations;
 namespace CommentsService.DTOs;
 
 public record CategoryRatingsDto(
-    [property: Range(1.0, 5.0)] double Cleanliness,
-    [property: Range(1.0, 5.0)] double Staff,
-    [property: Range(1.0, 5.0)] double Facilities,
-    [property: Range(1.0, 5.0)] double EcoFriendly);
+    [Range(1.0, 5.0)] double Cleanliness,
+    [Range(1.0, 5.0)] double Staff,
+    [Range(1.0, 5.0)] double Facilities,
+    [Range(1.0, 5.0)] double EcoFriendly);
 
 public record CreateCommentRequest(
     Guid HotelId,
     DateTime TravelDate,
-    [property: Range(1.0, 5.0)] double OverallRating,
-    [property: Required] CategoryRatingsDto CategoryRatings,
-    [property: Required, MinLength(3), MaxLength(2000)] string CommentText
+    [Range(1.0, 5.0)] double OverallRating,
+    [Required] CategoryRatingsDto CategoryRatings,
+    [Required, MinLength(3), MaxLength(2000)] string CommentText
 ) : IValidatableObject
 {
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
