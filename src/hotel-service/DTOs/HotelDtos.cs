@@ -79,9 +79,9 @@ public record SearchRequest(
     string? Location,
     DateOnly? CheckIn,
     DateOnly? CheckOut,
-    [property: Range(1, 50)] int GuestCount = 1,
-    [property: Range(1, int.MaxValue)] int Page = 1,
-    [property: Range(1, 100)] int PageSize = 10
+    [Range(1, 50)] int GuestCount = 1,
+    [Range(1, int.MaxValue)] int Page = 1,
+    [Range(1, 100)] int PageSize = 10
 ) : IValidatableObject
 {
     public DateOnly ResolvedCheckIn  => CheckIn  ?? DateOnly.FromDateTime(DateTime.UtcNow);
