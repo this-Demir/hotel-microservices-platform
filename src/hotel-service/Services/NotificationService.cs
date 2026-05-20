@@ -1,33 +1,23 @@
-using HotelService.Data;
 using HotelService.DTOs;
-using Microsoft.EntityFrameworkCore;
+using HotelService.Repositories;
 
 namespace HotelService.Services;
 
-public class NotificationService(HotelDbContext db) : INotificationService
+public class NotificationService(INotificationRepository notificationRepo) : INotificationService
 {
-    public async Task<PagedResult<NotificationResponse>> GetNotificationsAsync(string userId, int page, int pageSize)
+    public async Task<PagedResult<NotificationResponse>> GetNotificationsAsync(
+        string userId, int page, int pageSize)
     {
-        var query = db.Notifications
-            .Where(n => n.UserId == userId)
-            .OrderByDescending(n => n.CreatedAt);
-
-        var total = await query.CountAsync();
-        var items = await query
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(n => new NotificationResponse(n.Id, n.Title, n.Body, n.IsRead, n.CreatedAt))
-            .ToListAsync();
-
-        return new PagedResult<NotificationResponse>(items, page, pageSize, total);
+        var (items, total) = await notificationRepo.GetPagedByUserAsync(userId, page, pageSize);
+        var dtos = items.Select(n => new NotificationResponse(n.Id, n.Title, n.Body, n.IsRead, n.CreatedAt));
+        return new PagedResult<NotificationResponse>(dtos, page, pageSize, total);
     }
 
     public async Task MarkAsReadAsync(Guid notificationId, string userId)
     {
-        var notification = await db.Notifications
-            .FirstOrDefaultAsync(n => n.Id == notificationId && n.UserId == userId);
+        var notification = await notificationRepo.GetByIdForUserAsync(notificationId, userId);
         if (notification is null) return;
         notification.IsRead = true;
-        await db.SaveChangesAsync();
+        await notificationRepo.UpdateAsync(notification);
     }
 }

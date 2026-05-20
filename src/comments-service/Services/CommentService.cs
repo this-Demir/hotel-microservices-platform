@@ -1,25 +1,11 @@
 using CommentsService.DTOs;
 using CommentsService.Models;
-using MongoDB.Driver;
+using CommentsService.Repositories;
 
 namespace CommentsService.Services;
 
-public class CommentService : ICommentService
+public class CommentService(ICommentRepository repo) : ICommentService
 {
-    protected readonly IMongoCollection<HotelComment> _collection;
-
-    public CommentService(IMongoClient mongoClient, IConfiguration config)
-    {
-        var db = mongoClient.GetDatabase(config["MongoDB:Database"] ?? "hotel_comments_db");
-        _collection = db.GetCollection<HotelComment>("hotel_comments");
-    }
-
-    // For unit testing — bypasses MongoDB client wiring
-    internal CommentService(IMongoCollection<HotelComment> collection)
-    {
-        _collection = collection;
-    }
-
     public async Task<CommentResponse> CreateAsync(CreateCommentRequest request, string userId, string userEmail)
     {
         var comment = new HotelComment
@@ -40,41 +26,21 @@ public class CommentService : ICommentService
             CreatedAt = DateTime.UtcNow,
         };
 
-        await _collection.InsertOneAsync(comment);
+        await repo.InsertAsync(comment);
         return ToResponse(comment);
     }
 
     public async Task<CommentPagedResult> GetByHotelAsync(Guid hotelId, int page, int pageSize)
     {
-        var filter = Builders<HotelComment>.Filter.Eq(c => c.HotelId, hotelId);
+        var countTask = repo.CountByHotelAsync(hotelId);
+        var avgTask = repo.GetAverageRatingAsync(hotelId);
+        await Task.WhenAll(countTask, avgTask);
 
-        var totalTask = _collection.CountDocumentsAsync(filter);
-        var avgTask = ComputeAverageRatingAsync(filter);
+        var total = (int)countTask.Result;
+        var averageRating = avgTask.Result;
 
-        await Task.WhenAll(totalTask, avgTask);
-
-        var total = (int)totalTask.Result;
-        double averageRating = avgTask.Result;
-
-        var options = new FindOptions<HotelComment>
-        {
-            Sort = Builders<HotelComment>.Sort.Descending(c => c.CreatedAt),
-            Skip = (page - 1) * pageSize,
-            Limit = pageSize,
-        };
-        using var cursor = await _collection.FindAsync(filter, options);
-        var items = await cursor.ToListAsync();
+        var items = await repo.GetPageByHotelAsync(hotelId, page, pageSize);
         return new CommentPagedResult(items.Select(ToResponse), page, pageSize, total, Math.Round(averageRating, 2));
-    }
-
-    protected virtual async Task<double> ComputeAverageRatingAsync(FilterDefinition<HotelComment> filter)
-    {
-        var result = await _collection
-            .Aggregate()
-            .Match(filter)
-            .Group(c => 1, g => new { Avg = g.Average(c => c.OverallRating) })
-            .FirstOrDefaultAsync();
-        return result?.Avg ?? 0;
     }
 
     private static CommentResponse ToResponse(HotelComment c) => new(

@@ -1,77 +1,49 @@
 using CommentsService.DTOs;
 using CommentsService.Models;
+using CommentsService.Repositories;
 using CommentsService.Services;
-using MongoDB.Driver;
 using Moq;
 
 namespace CommentsService.Tests;
 
-/// <summary>
-/// Exposes the internal constructor so tests can inject a mock collection.
-/// </summary>
-file sealed class TestableCommentService : CommentService
-{
-    public TestableCommentService(IMongoCollection<HotelComment> collection) : base(collection) { }
-    protected override Task<double> ComputeAverageRatingAsync(FilterDefinition<HotelComment> filter) => Task.FromResult(0.0);
-}
-
 public class CommentServiceTests
 {
-    private readonly Mock<IMongoCollection<HotelComment>> _collection = new();
-
-    private CommentService Build() => new TestableCommentService(_collection.Object);
-
-    private static Mock<IAsyncCursor<HotelComment>> BuildCursor(List<HotelComment> items)
-    {
-        var cursor = new Mock<IAsyncCursor<HotelComment>>();
-        cursor.SetupSequence(x => x.MoveNextAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true)
-            .ReturnsAsync(false);
-        cursor.Setup(x => x.Current).Returns(items);
-        return cursor;
-    }
+    private static CommentService Build(ICommentRepository repo) => new(repo);
 
     // ── CreateAsync ────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task CreateAsync_CallsInsertOne_AndReturnsCorrectResponse()
+    public async Task CreateAsync_CallsInsert_AndReturnsCorrectResponse()
     {
-        _collection.Setup(c => c.InsertOneAsync(
-                It.IsAny<HotelComment>(),
-                It.IsAny<InsertOneOptions?>(),
-                It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+        var repo = new Mock<ICommentRepository>();
+        repo.Setup(r => r.InsertAsync(It.IsAny<HotelComment>())).Returns(Task.CompletedTask);
 
         var hotelId = Guid.NewGuid();
         var request = new CreateCommentRequest(
             hotelId, DateTime.UtcNow, 4.5,
             new CategoryRatingsDto(5.0, 4.0, 3.5, 4.5), "Great stay!");
 
-        var result = await Build().CreateAsync(request, "user-001", "user001@example.com");
+        var result = await Build(repo.Object).CreateAsync(request, "user-001", "user001@example.com");
 
         Assert.Equal(hotelId, result.HotelId);
         Assert.Equal("user-001", result.UserId);
         Assert.Equal(4.5, result.OverallRating);
         Assert.Equal("Great stay!", result.CommentText);
-        _collection.Verify(c => c.InsertOneAsync(
-            It.Is<HotelComment>(h => h.HotelId == hotelId && h.UserId == "user-001"),
-            It.IsAny<InsertOneOptions?>(),
-            It.IsAny<CancellationToken>()), Times.Once);
+        repo.Verify(r => r.InsertAsync(
+            It.Is<HotelComment>(h => h.HotelId == hotelId && h.UserId == "user-001")),
+            Times.Once);
     }
 
     [Fact]
     public async Task CreateAsync_MapsAllCategoryRatings()
     {
-        _collection.Setup(c => c.InsertOneAsync(
-                It.IsAny<HotelComment>(),
-                It.IsAny<InsertOneOptions?>(),
-                It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+        var repo = new Mock<ICommentRepository>();
+        repo.Setup(r => r.InsertAsync(It.IsAny<HotelComment>())).Returns(Task.CompletedTask);
 
         var ratings = new CategoryRatingsDto(4.0, 5.0, 3.0, 2.5);
         var request = new CreateCommentRequest(Guid.NewGuid(), DateTime.UtcNow, 4.0, ratings, "OK");
 
-        var result = await Build().CreateAsync(request, "user-002", "user002@example.com");
+        var result = await Build(repo.Object).CreateAsync(request, "user-002", "user002@example.com");
 
         Assert.Equal(4.0, result.CategoryRatings.Cleanliness);
         Assert.Equal(5.0, result.CategoryRatings.Staff);
@@ -82,7 +54,7 @@ public class CommentServiceTests
     // ── GetByHotelAsync ────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task GetByHotelAsync_ReturnsPagedResult_WithCorrectCount()
+    public async Task GetByHotelAsync_AssemblesCorrectPagedResult()
     {
         var hotelId = Guid.NewGuid();
         var comments = new List<HotelComment>
@@ -95,69 +67,34 @@ public class CommentServiceTests
                 CommentText = "Decent", CreatedAt = DateTime.UtcNow.AddDays(-1) },
         };
 
-        _collection.Setup(c => c.CountDocumentsAsync(
-                It.IsAny<FilterDefinition<HotelComment>>(),
-                It.IsAny<CountOptions?>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(2L);
+        var repo = new Mock<ICommentRepository>();
+        repo.Setup(r => r.CountByHotelAsync(hotelId)).ReturnsAsync(2L);
+        repo.Setup(r => r.GetAverageRatingAsync(hotelId)).ReturnsAsync(3.75);
+        repo.Setup(r => r.GetPageByHotelAsync(hotelId, 1, 10))
+            .ReturnsAsync(comments.AsReadOnly());
 
-        _collection.Setup(c => c.FindAsync(
-                It.IsAny<FilterDefinition<HotelComment>>(),
-                It.IsAny<FindOptions<HotelComment, HotelComment>?>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(BuildCursor(comments).Object);
-
-        var result = await Build().GetByHotelAsync(hotelId, page: 1, pageSize: 10);
+        var result = await Build(repo.Object).GetByHotelAsync(hotelId, page: 1, pageSize: 10);
 
         Assert.Equal(2, result.TotalCount);
         Assert.Equal(2, result.Items.Count());
         Assert.Equal(1, result.Page);
         Assert.Equal(10, result.PageSize);
+        Assert.Equal(3.75, result.AverageRating);
     }
 
     [Fact]
     public async Task GetByHotelAsync_EmptyCollection_ReturnsZeroItems()
     {
-        _collection.Setup(c => c.CountDocumentsAsync(
-                It.IsAny<FilterDefinition<HotelComment>>(),
-                It.IsAny<CountOptions?>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(0L);
+        var hotelId = Guid.NewGuid();
+        var repo = new Mock<ICommentRepository>();
+        repo.Setup(r => r.CountByHotelAsync(hotelId)).ReturnsAsync(0L);
+        repo.Setup(r => r.GetAverageRatingAsync(hotelId)).ReturnsAsync(0.0);
+        repo.Setup(r => r.GetPageByHotelAsync(hotelId, 1, 10))
+            .ReturnsAsync(new List<HotelComment>().AsReadOnly());
 
-        _collection.Setup(c => c.FindAsync(
-                It.IsAny<FilterDefinition<HotelComment>>(),
-                It.IsAny<FindOptions<HotelComment, HotelComment>?>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(BuildCursor(new List<HotelComment>()).Object);
-
-        var result = await Build().GetByHotelAsync(Guid.NewGuid(), page: 1, pageSize: 10);
+        var result = await Build(repo.Object).GetByHotelAsync(hotelId, page: 1, pageSize: 10);
 
         Assert.Equal(0, result.TotalCount);
         Assert.Empty(result.Items);
-    }
-
-    [Fact]
-    public async Task GetByHotelAsync_Pagination_PassesCorrectSkipAndLimit()
-    {
-        _collection.Setup(c => c.CountDocumentsAsync(
-                It.IsAny<FilterDefinition<HotelComment>>(),
-                It.IsAny<CountOptions?>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(25L);
-
-        FindOptions<HotelComment, HotelComment>? capturedOptions = null;
-        _collection.Setup(c => c.FindAsync(
-                It.IsAny<FilterDefinition<HotelComment>>(),
-                It.IsAny<FindOptions<HotelComment, HotelComment>?>(),
-                It.IsAny<CancellationToken>()))
-            .Callback<FilterDefinition<HotelComment>, FindOptions<HotelComment, HotelComment>?, CancellationToken>(
-                (_, opts, _) => capturedOptions = opts)
-            .ReturnsAsync(BuildCursor(new List<HotelComment>()).Object);
-
-        await Build().GetByHotelAsync(Guid.NewGuid(), page: 3, pageSize: 5);
-
-        Assert.NotNull(capturedOptions);
-        Assert.Equal(10, capturedOptions.Skip);  // (page-1) * pageSize = 2 * 5
-        Assert.Equal(5, capturedOptions.Limit);
     }
 }

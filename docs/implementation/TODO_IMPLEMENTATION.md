@@ -86,33 +86,9 @@ File: `src/admin-client/app/page.tsx` — stat cards (total hotels, total bookin
 
 ---
 
-### 2.1 Backend — Validation Attributes on DTOs ⏳
+### 2.1 Backend — Validation Attributes on DTOs ✅
 
-File: `src/hotel-service/DTOs/`
-
-**Hotel create/update:**
-```csharp
-[Required, MinLength(2), MaxLength(200)] string Name
-[Required, MinLength(2)] string Location
-[EmailAddress] string? AdminEmail
-```
-
-**Room create/update:**
-```csharp
-[Required] Guid HotelId
-[Required] string RoomType
-[Range(0.01, 100000)] decimal BasePrice
-```
-
-**Availability create:**
-```csharp
-[Required] Guid RoomId
-[Required] DateOnly CheckIn
-[Required] DateOnly CheckOut   // validated: CheckOut > CheckIn
-[Range(1, 1000)] int TotalCapacity
-```
-
-`[ApiController]` is already applied — auto-returns 400 on invalid model.
+DataAnnotations (`[Required]`, `[Range]`, `[EmailAddress]`, `[MinLength]`/`[MaxLength]`) added to all request DTOs in `hotel-service` and `comments-service` using the `[property: ...]` target syntax for positional records. Cross-field rules (`CheckOut > CheckIn`, `EndDate > StartDate`, empty-Guid rejection) implemented via `IValidatableObject` on `SetAvailabilityRequest`, `SearchRequest`, `BookRoomRequest`, and `CreateCommentRequest`. `[ApiController]` auto-returns 400 ProblemDetails on invalid model state — no controller changes required.
 
 ---
 
@@ -188,7 +164,7 @@ File: `src/client/lib/api.ts` — wrap authenticated fetch calls with a refresh-
 
 ---
 
-### 4.4 Professional Email Templates ⏳
+### 4.4 Professional Email Templates ✅
 
 **Booking confirmation** (`src/notification-service/Services/EmailService.cs`):
 - Branded HTML card: check-in/out dates, price breakdown, CTA "View Booking" button, footer
@@ -198,7 +174,7 @@ File: `src/client/lib/api.ts` — wrap authenticated fetch calls with a refresh-
 
 ---
 
-### 4.5 Row Level Security (Supabase RLS) ⏳
+### 4.5 Row Level Security (Supabase RLS) ✅
 
 Tables to add policies:
 - `Notifications` — user can only SELECT their own rows
@@ -208,9 +184,15 @@ Service role key bypasses RLS — no .NET code changes needed for writes.
 
 ---
 
-### 4.6 Repository Layer Refactor ⏳
+### 4.6 Repository Layer Refactor ✅
 
-Move DB calls from service classes into dedicated repository classes. Do after input validation is complete.
+N-layered architecture: **Controller → Service → Repository → DbContext/Collection**.
+
+`hotel-service`: 6 repository pairs (`IHotelRepository`, `IRoomRepository`, `IRoomAvailabilityRepository`, `IReservationRepository`, `INotificationRepository`, `IHotelImageRepository`) in `src/hotel-service/Repositories/`. `ReservationRepository.CreateBookingAsync` owns the pessimistic-lock transaction (`SELECT FOR UPDATE`); test seam via `protected virtual GetAvailabilityForUpdateAsync`. All 4 services (`BookingService`, `SearchService`, `HotelAdminService`, `NotificationService`) rewritten to inject repositories only — no direct `HotelDbContext` usage.
+
+`comments-service`: `ICommentRepository` / `MongoCommentRepository` in `src/comments-service/Repositories/`. `CommentService` injects `ICommentRepository` only.
+
+All 37 tests pass (30 hotel-service + 7 comments-service).
 
 ---
 

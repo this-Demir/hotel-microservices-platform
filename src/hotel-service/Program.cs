@@ -1,4 +1,5 @@
 using HotelService.Data;
+using HotelService.Repositories;
 using HotelService.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -69,6 +70,14 @@ builder.Services.AddSingleton<IConnection>(_ =>
     }
     return factory.CreateConnectionAsync().GetAwaiter().GetResult();
 });
+
+// Repositories
+builder.Services.AddScoped<IHotelRepository, HotelRepository>();
+builder.Services.AddScoped<IHotelImageRepository, HotelImageRepository>();
+builder.Services.AddScoped<IRoomRepository, RoomRepository>();
+builder.Services.AddScoped<IRoomAvailabilityRepository, RoomAvailabilityRepository>();
+builder.Services.AddScoped<IReservationRepository, ReservationRepository>();
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 
 // Application services
 builder.Services.AddScoped<IHotelAdminService, HotelAdminService>();

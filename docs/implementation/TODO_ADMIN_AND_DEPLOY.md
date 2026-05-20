@@ -52,11 +52,11 @@ Legend: ✅ Done | ⏳ Pending | 🔜 Next session
 - ✅ My Bookings page — `app/bookings/page.tsx`
 - ✅ My Account page — `app/account/page.tsx` (profile from JWT claims)
 - ✅ Show on Map — split view with interactive Leaflet pins (course requirement)
-- ⏳ Member 15% discount badge visible in search results
-- ⏳ All navbar links functional
+- ✅ Member 15% discount badge visible in search results
+- ✅ All navbar links functional
 - ⏳ Error toasts + loading skeletons
 
 ## Data Reset (Pending)
-- ⏳ Wipe Supabase rows (Hotels, Rooms, RoomAvailabilities, Reservations, Notifications, HotelImages)
-- ⏳ Reseed 10–20 hotels via admin panel (AdminSub auto-fills; AdminEmail must match Resend account email)
-- ⏳ Lambda E2E verify after reseed — confirm notification row `UserId = <admin sub>` → appears in admin panel
+- ✅ Wipe Supabase rows (Hotels, Rooms, RoomAvailabilities, Reservations, Notifications, HotelImages)
+- ✅ Reseed 10–20 hotels via admin panel (AdminSub auto-fills; AdminEmail must match Resend account email)
+- ✅ Lambda E2E verify after reseed — confirm notification row `UserId = <admin sub>` → appears in admin panel

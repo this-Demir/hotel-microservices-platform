@@ -1,6 +1,7 @@
 using HotelService.Data;
 using HotelService.DTOs;
 using HotelService.Models;
+using HotelService.Repositories;
 using HotelService.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -22,7 +23,14 @@ public class HotelAdminServiceTests
     {
         var config = new Mock<IConfiguration>();
         var httpFactory = new Mock<IHttpClientFactory>();
-        return new HotelAdminService(db, httpFactory.Object, config.Object);
+        return new HotelAdminService(
+            new HotelRepository(db),
+            new HotelImageRepository(db),
+            new RoomRepository(db),
+            new RoomAvailabilityRepository(db),
+            new ReservationRepository(db),
+            httpFactory.Object,
+            config.Object);
     }
 
     // ── Hotels ──────────────────────────────────────────────────────────────

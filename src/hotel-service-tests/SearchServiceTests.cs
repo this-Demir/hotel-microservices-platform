@@ -2,6 +2,7 @@ using System.Text.Json;
 using HotelService.Data;
 using HotelService.DTOs;
 using HotelService.Models;
+using HotelService.Repositories;
 using HotelService.Services;
 using Microsoft.EntityFrameworkCore;
 using Moq;
@@ -34,6 +35,9 @@ public class SearchServiceTests
 
         return (mockRedis, mockDb);
     }
+
+    private static SearchService Build(HotelDbContext db, IConnectionMultiplexer redis) =>
+        new(new HotelRepository(db), new RoomRepository(db), new RoomAvailabilityRepository(db), redis);
 
     private static async Task<(Hotel hotel, Room room, RoomAvailability avail)> SeedAsync(
         HotelDbContext db, decimal basePrice = 200m, int totalCapacity = 5, int reservedCount = 0)
@@ -84,7 +88,7 @@ public class SearchServiceTests
         await using var db = CreateDb();
         await SeedAsync(db);
         var (mockRedis, _) = MakeCacheMiss();
-        var svc = new SearchService(db, mockRedis.Object);
+        var svc = Build(db, mockRedis.Object);
 
         var result = await svc.SearchAsync(DefaultRequest(), isAuthenticated: false);
 
@@ -109,7 +113,7 @@ public class SearchServiceTests
         mockRedis.Setup(r => r.GetDatabase(It.IsAny<int>(), It.IsAny<object?>()))
             .Returns(mockDbRedis.Object);
 
-        var svc = new SearchService(db, mockRedis.Object);
+        var svc = Build(db, mockRedis.Object);
         var result = await svc.SearchAsync(DefaultRequest(), isAuthenticated: false);
 
         Assert.Equal(1, result.TotalCount);
@@ -124,7 +128,7 @@ public class SearchServiceTests
         await using var db = CreateDb();
         await SeedAsync(db, basePrice: 200m);
         var (mockRedis, _) = MakeCacheMiss();
-        var svc = new SearchService(db, mockRedis.Object);
+        var svc = Build(db, mockRedis.Object);
 
         var result = await svc.SearchAsync(DefaultRequest(), isAuthenticated: true);
 
@@ -137,7 +141,7 @@ public class SearchServiceTests
         await using var db = CreateDb();
         await SeedAsync(db, basePrice: 200m);
         var (mockRedis, _) = MakeCacheMiss();
-        var svc = new SearchService(db, mockRedis.Object);
+        var svc = Build(db, mockRedis.Object);
 
         var result = await svc.SearchAsync(DefaultRequest(), isAuthenticated: false);
 
@@ -149,13 +153,12 @@ public class SearchServiceTests
     {
         await using var db = CreateDb();
         await SeedAsync(db, totalCapacity: 1, reservedCount: 1);
-        // Mark as not vacant so query filters it out
         var avail = await db.RoomAvailabilities.FirstAsync();
         avail.IsVacant = false;
         await db.SaveChangesAsync();
 
         var (mockRedis, _) = MakeCacheMiss();
-        var svc = new SearchService(db, mockRedis.Object);
+        var svc = Build(db, mockRedis.Object);
 
         var result = await svc.SearchAsync(DefaultRequest(), isAuthenticated: false);
 
@@ -170,7 +173,7 @@ public class SearchServiceTests
         await using var db = CreateDb();
         var (_, room, _) = await SeedAsync(db, basePrice: 300m);
         var (mockRedis, _) = MakeCacheMiss();
-        var svc = new SearchService(db, mockRedis.Object);
+        var svc = Build(db, mockRedis.Object);
 
         var detail = await svc.GetRoomDetailAsync(room.Id, isAuthenticated: true);
 
@@ -184,7 +187,7 @@ public class SearchServiceTests
         await using var db = CreateDb();
         var (_, room, _) = await SeedAsync(db, basePrice: 300m);
         var (mockRedis, _) = MakeCacheMiss();
-        var svc = new SearchService(db, mockRedis.Object);
+        var svc = Build(db, mockRedis.Object);
 
         var detail = await svc.GetRoomDetailAsync(room.Id, isAuthenticated: false);
 
@@ -197,7 +200,7 @@ public class SearchServiceTests
     {
         await using var db = CreateDb();
         var (mockRedis, _) = MakeCacheMiss();
-        var svc = new SearchService(db, mockRedis.Object);
+        var svc = Build(db, mockRedis.Object);
 
         var result = await svc.GetRoomDetailAsync(Guid.NewGuid(), isAuthenticated: false);
 

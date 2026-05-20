@@ -1,6 +1,7 @@
 using HotelService.Data;
 using HotelService.DTOs;
 using HotelService.Models;
+using HotelService.Repositories;
 using HotelService.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -10,15 +11,14 @@ using RabbitMQ.Client;
 namespace HotelService.Tests;
 
 /// <summary>
-/// Replaces the SELECT FOR UPDATE raw SQL with an equivalent LINQ query
-/// so the tests can run against EF Core InMemory without a real Postgres.
+/// Swaps the SELECT FOR UPDATE raw SQL for a plain LINQ query so tests run
+/// against EF Core InMemory without a real Postgres instance.
 /// </summary>
-file sealed class TestableBookingService : BookingService
+file sealed class TestableReservationRepository : ReservationRepository
 {
     private readonly HotelDbContext _db;
 
-    public TestableBookingService(HotelDbContext db, IConnection rabbit) : base(db, rabbit)
-        => _db = db;
+    public TestableReservationRepository(HotelDbContext db) : base(db) => _db = db;
 
     protected override async Task<RoomAvailability?> GetAvailabilityForUpdateAsync(
         Guid roomId, DateOnly checkIn, DateOnly checkOut)
@@ -54,6 +54,9 @@ public class BookingServiceTests
 
         return mockConnection.Object;
     }
+
+    private static BookingService Build(HotelDbContext db) =>
+        new(new RoomRepository(db), new TestableReservationRepository(db), MockRabbit());
 
     private static async Task<(Hotel hotel, Room room, RoomAvailability avail)> SeedAsync(
         HotelDbContext db, int totalCapacity = 3, int reservedCount = 0, decimal basePrice = 100m)
@@ -103,7 +106,7 @@ public class BookingServiceTests
     {
         await using var db = CreateDb();
         var (_, room, _) = await SeedAsync(db, totalCapacity: 3);
-        var svc = new TestableBookingService(db, MockRabbit());
+        var svc = Build(db);
 
         await svc.BookRoomAsync(DefaultRequest(room.Id), "user1", "u1@mail.com", isAuthenticated: false);
 
@@ -117,7 +120,7 @@ public class BookingServiceTests
     {
         await using var db = CreateDb();
         var (_, room, _) = await SeedAsync(db, totalCapacity: 1, reservedCount: 0);
-        var svc = new TestableBookingService(db, MockRabbit());
+        var svc = Build(db);
 
         await svc.BookRoomAsync(DefaultRequest(room.Id), "user1", "u1@mail.com", isAuthenticated: false);
 
@@ -130,12 +133,11 @@ public class BookingServiceTests
     public async Task BookRoom_NoAvailability_Throws_InvalidOperationException()
     {
         await using var db = CreateDb();
-        // Room availability is marked not vacant
         var (_, room, avail) = await SeedAsync(db);
         avail.IsVacant = false;
         await db.SaveChangesAsync();
 
-        var svc = new TestableBookingService(db, MockRabbit());
+        var svc = Build(db);
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => svc.BookRoomAsync(DefaultRequest(room.Id), "user1", "u1@mail.com", false));
@@ -148,7 +150,7 @@ public class BookingServiceTests
     {
         await using var db = CreateDb();
         var (_, room, _) = await SeedAsync(db, basePrice: 100m);
-        var svc = new TestableBookingService(db, MockRabbit());
+        var svc = Build(db);
 
         // 2 nights at 100 = 200
         var response = await svc.BookRoomAsync(
@@ -162,7 +164,7 @@ public class BookingServiceTests
     {
         await using var db = CreateDb();
         var (_, room, _) = await SeedAsync(db, basePrice: 100m);
-        var svc = new TestableBookingService(db, MockRabbit());
+        var svc = Build(db);
 
         // 2 nights at 100 * 0.85 = 170
         var response = await svc.BookRoomAsync(
@@ -178,7 +180,7 @@ public class BookingServiceTests
     {
         await using var db = CreateDb();
         var (_, room, _) = await SeedAsync(db, totalCapacity: 5);
-        var svc = new TestableBookingService(db, MockRabbit());
+        var svc = Build(db);
 
         await svc.BookRoomAsync(DefaultRequest(room.Id), "alice", "alice@mail.com", false);
         await svc.BookRoomAsync(DefaultRequest(room.Id), "bob", "bob@mail.com", false);
@@ -198,7 +200,7 @@ public class BookingServiceTests
     {
         await using var db = CreateDb();
         var (_, room, _) = await SeedAsync(db, totalCapacity: 10);
-        var svc = new TestableBookingService(db, MockRabbit());
+        var svc = Build(db);
 
         for (var i = 0; i < 5; i++)
             await svc.BookRoomAsync(DefaultRequest(room.Id), "user1", "u1@mail.com", false);

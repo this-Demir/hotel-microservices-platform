@@ -1,17 +1,27 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace CommentsService.DTOs;
 
 public record CategoryRatingsDto(
-    double Cleanliness,
-    double Staff,
-    double Facilities,
-    double EcoFriendly);
+    [property: Range(1.0, 5.0)] double Cleanliness,
+    [property: Range(1.0, 5.0)] double Staff,
+    [property: Range(1.0, 5.0)] double Facilities,
+    [property: Range(1.0, 5.0)] double EcoFriendly);
 
 public record CreateCommentRequest(
     Guid HotelId,
     DateTime TravelDate,
-    double OverallRating,
-    CategoryRatingsDto CategoryRatings,
-    string CommentText);
+    [property: Range(1.0, 5.0)] double OverallRating,
+    [property: Required] CategoryRatingsDto CategoryRatings,
+    [property: Required, MinLength(3), MaxLength(2000)] string CommentText
+) : IValidatableObject
+{
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (HotelId == Guid.Empty)
+            yield return new ValidationResult("HotelId must not be empty.", [nameof(HotelId)]);
+    }
+}
 
 public record CommentResponse(
     string Id,

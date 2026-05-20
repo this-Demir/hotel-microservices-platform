@@ -232,9 +232,9 @@ Platform switched from Google Cloud Run → **Azure Container Apps** (Consumptio
 ## Phase 11 — Remaining Work
 
 ### 11a — Data Reset (Planned)
-- [ ] **Wipe Supabase** — clear all rows from Hotels, Rooms, RoomAvailabilities, Reservations, Notifications, HotelImages (schema stays)
-- [ ] **Reseed** — create 10–20 hotels via admin panel (each auto-fills `AdminSub`; set `AdminEmail` to the Resend account email)
-- [ ] **Lambda E2E verify** — manual invoke after seed; confirm notification row has `UserId = <admin sub>` → appears in admin notifications panel
+- [x] **Wipe Supabase** — clear all rows from Hotels, Rooms, RoomAvailabilities, Reservations, Notifications, HotelImages (schema stays)
+- [x] **Reseed** — create 10–20 hotels via admin panel (each auto-fills `AdminSub`; set `AdminEmail` to the Resend account email)
+- [x] **Lambda E2E verify** — manual invoke after seed; confirm notification row has `UserId = <admin sub>` → appears in admin notifications panel
 
 ### 11b — AI Agent (Course Requirement)
 - [x] **End-to-end wired** — `ChatWidget.tsx` handles `search_hotels` + `book_hotel` tool responses; agent calls hotel-service with user JWT
@@ -246,7 +246,7 @@ Platform switched from Google Cloud Run → **Azure Container Apps** (Consumptio
 - [x] My Bookings page — `app/bookings/page.tsx` — hotel name, dates, price, status badge
 - [x] My Account page — `app/account/page.tsx` — profile from Cognito ID token claims
 - [x] Show on Map — **course requirement met** — split-view with interactive Leaflet pins (`InteractiveMap.tsx`), `HotelCardCompact.tsx` for map view; `HotelMap.tsx` for detail page
-- [ ] Member discount badge — show original + discounted price in search results when signed in
+- [x] Member discount badge — show original + discounted price in search results when signed in
 - [ ] Error toasts + loading states + skeleton screens across all flows
 
 ### 11d — Final Deliverables

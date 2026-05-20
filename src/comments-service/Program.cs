@@ -1,3 +1,4 @@
+using CommentsService.Repositories;
 using CommentsService.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using MongoDB.Bson;
@@ -32,6 +33,7 @@ builder.Services
         };
     });
 
+builder.Services.AddScoped<ICommentRepository, MongoCommentRepository>();
 builder.Services.AddScoped<ICommentService, CommentService>();
 
 var app = builder.Build();
