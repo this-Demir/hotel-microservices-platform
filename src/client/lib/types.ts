@@ -37,6 +37,17 @@ export interface BookingResponse {
   pricePaid: number
 }
 
+export interface ReservationResponse {
+  id: string
+  roomId: string
+  hotelName: string
+  roomType: string
+  checkIn: string
+  checkOut: string
+  guestCount: number
+  pricePaid: number
+}
+
 export interface NotificationResponse {
   id: string
   title: string

@@ -4,6 +4,7 @@ import type {
   RoomDetailResponse,
   BookRoomRequest,
   BookingResponse,
+  ReservationResponse,
   NotificationResponse,
   ChatResponse,
   PagedResult,
@@ -172,6 +173,19 @@ export async function chatWithAgent(message: string, token: string, history: Cha
     const body = await res.json().catch(() => null)
     throw new Error(body?.error ?? 'Something went wrong. Please try again.')
   }
+  return res.json()
+}
+
+export async function getReservations(
+  token: string,
+  page = 1,
+  pageSize = 10,
+): Promise<PagedResult<ReservationResponse>> {
+  if (!API_URL) return { items: [], page, pageSize, totalCount: 0 }
+  const res = await fetch(`${API_URL}/api/v1/bookings?page=${page}&pageSize=${pageSize}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!res.ok) throw new Error('Failed to fetch reservations')
   return res.json()
 }
 

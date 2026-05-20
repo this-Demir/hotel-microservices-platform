@@ -68,8 +68,7 @@ export function Header({ onBellClick, unreadCount = 0 }: HeaderProps) {
         <nav className={cn('hidden md:flex items-center gap-7 text-sm font-medium', transparent ? 'text-white/90' : 'text-slate-600')}>
           <button onClick={() => router.push('/')} className={cn('hover:opacity-100 transition', pathname === '/' ? 'opacity-100' : 'opacity-80')}>Home</button>
           <button onClick={() => router.push('/search')} className={cn('hover:opacity-100 transition', pathname === '/search' ? 'opacity-100' : 'opacity-80')}>Search</button>
-          <button className="opacity-80 hover:opacity-100 transition">Trips</button>
-          <button className="opacity-80 hover:opacity-100 transition">Support</button>
+          {isLoggedIn && <button onClick={() => router.push('/bookings')} className={cn('hover:opacity-100 transition', pathname === '/bookings' ? 'opacity-100' : 'opacity-80')}>Trips</button>}
         </nav>
 
         {/* Right */}
@@ -96,12 +95,15 @@ export function Header({ onBellClick, unreadCount = 0 }: HeaderProps) {
                   </span>
                 )}
               </button>
-              <div className={cn('hidden sm:flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full', transparent ? 'bg-white/10 text-white' : 'bg-slate-100 text-slate-800')}>
+              <button
+                onClick={() => router.push('/account')}
+                className={cn('hidden sm:flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full transition', transparent ? 'bg-white/10 text-white hover:bg-white/20' : 'bg-slate-100 text-slate-800 hover:bg-slate-200')}
+              >
                 <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-fuchsia-500 grid place-items-center text-white text-xs font-bold">
                   {user ? initials(user.name) : '?'}
                 </div>
                 <span className="text-sm font-semibold">{user?.name.split(' ')[0]}</span>
-              </div>
+              </button>
               <button onClick={logout} className={cn('px-3 py-2 rounded-lg text-sm font-semibold transition', transparent ? 'text-white hover:bg-white/10' : 'text-slate-700 hover:bg-slate-100')}>
                 Sign Out
               </button>
