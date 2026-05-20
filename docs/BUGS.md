@@ -2,26 +2,12 @@
 
 ## Open
 
-### BUG-005 — Hotel delete hits FK constraint without user-facing error
-**Severity:** High
-**Symptom:** `DELETE /api/v1/admin/hotels/{id}` with existing rooms returns 500 (Npgsql FK violation) instead of 409.
-**Root cause:** `HotelAdminService.DeleteHotelAsync` has no child-count pre-check.
-**Fix:** Query child rooms before delete; return 409 with message if any exist.
-**File:** `src/hotel-service/Services/HotelAdminService.cs`
-
-
-### BUG-007 — Lambda inserts notification with AdminEmail as UserId
-**Severity:** Medium
-**Symptom:** Capacity alert notifications written to Supabase use `AdminEmail` as the `UserId` column, which should hold the admin's Cognito `sub`.
-**Root cause:** `InsertNotificationAsync` in `Function.cs` sets `@userId = alert.AdminEmail`.
-**Fix:** Store admin's Cognito `sub` in `Hotels.AdminSub` column (or resolve sub from email at query time).
-**File:** `src/cron-jobs/Function.cs`
-
-### BUG-008 — Test hotel has empty AdminEmail, Lambda alerts never fire
+### BUG-008 — Existing hotels have NULL AdminSub, Lambda alerts won't reach admin panel
 **Severity:** Low
-**Symptom:** Lambda runs successfully but sends 0 alerts even when capacity thresholds are met.
-**Root cause:** The test hotel row in Supabase has an empty `AdminEmail` field.
-**Fix:** Update test hotel via admin panel or direct SQL to set a valid `AdminEmail`.
+**Symptom:** Lambda runs but 0 notifications appear in admin panel for hotels seeded before the `AdminSub` migration.
+**Root cause:** `Hotels.AdminSub` was NULL on all rows seeded before Session 10; Lambda inserts `UserId = ""` which never matches the admin's JWT `sub`.
+**Fix:** Wipe Supabase and reseed via admin panel — new hotels auto-fill `AdminSub` from the creating admin's JWT.
+**Status:** Pending DB wipe + reseed (planned).
 
 ---
 
@@ -44,3 +30,5 @@
 | BUG-011 | Frontend sent access token instead of ID token — `email` claim missing, Resend rejected with 422 | `auth-context.tsx`: `setToken(accessToken)` → `setToken(idToken)` | 9b |
 | BUG-006 | Admin image upload returned 500 | `EnsureSuccessStatusCode()` was swallowing Supabase "Bucket not found" as unhandled `HttpRequestException`; fix reads error body + controller catches it; Supabase `hotel-images` bucket created in dashboard | 9c |
 | BUG-012 | Comments service returned 500 on all requests | (1) Atlas IP whitelist → `0.0.0.0/0`; (2) index creation moved from Scoped constructor to `MongoIndexInitializer : IHostedService`; (3) `GuidSerializer(Standard)` registered globally for Driver v3 compatibility | 10a |
+| BUG-005 | Hotel delete hits FK constraint returning 500 | `DeleteHotelAsync` now checks child rooms first; returns 409 with message if any exist | 10a |
+| BUG-007 | Lambda inserts notification with `AdminEmail` as `UserId` | Added `AdminSub` (nullable text) to `Hotels`; EF migration applied; `HotelModal.tsx` auto-fills from JWT `sub` on create; Lambda now uses `AdminSub ?? ""` as `UserId` | 10 |

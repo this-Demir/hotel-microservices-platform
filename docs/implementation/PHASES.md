@@ -209,39 +209,47 @@ Platform switched from Google Cloud Run → **Azure Container Apps** (Consumptio
 
 ---
 
-## Phase 10 — Remaining Work
+## Phase 10 — Admin Panel + Notification Flow (2026-05-20)
 
-### 10a — Email Templates (Polish)
-Both email templates are bare unstyled HTML (`<h2>` + `<p>` tags only). Make them professional:
-- [ ] **Booking confirmation** (`src/notification-service/Services/EmailService.cs`) — branded HTML email: logo/banner, styled card with check-in/out dates, price breakdown, CTA button, footer
-- [ ] **Capacity alert** (`src/notification-service/Services/EmailService.cs` + `src/cron-jobs/Function.cs`) — admin-facing alert email: warning colour strip, hotel + room details, occupancy bar/percentage, link to admin panel
+### 10a — Bug Fixes
+- [x] **BUG-005 FIXED** — `DELETE /hotels/{id}` with rooms returned 500; now returns 409 with guard check
+- [x] **BUG-006 FIXED** — Admin image upload returned 500; fixed in earlier session (Supabase bucket created, error body surfaced)
+- [x] **BUG-007 FIXED** — Lambda was inserting `UserId = AdminEmail`; fix: added `AdminSub` (nullable text) to `Hotels` + EF migration `AddHotelAdminSub` applied to Supabase; `HotelModal.tsx` auto-fills from JWT `sub` on create/edit; `Function.cs` now uses `AdminSub ?? ""` as `UserId`
+- [x] **Notification mark-read broken** — `[HttpPatch]` → `[HttpPut]` in `NotificationsController`; both clients already sent `PUT`; Ocelot only allowed `GET,PUT`
+- [x] **No bare notification GET route** — added explicit `GET /api/v1/notifications` to both `ocelot.json` and `ocelot.Production.json` (mirrors search dual-route pattern)
 
-### 10b — Bug Fixes (Next)
-- [ ] **Image upload 500** — admin image upload broken; likely Ocelot multipart forwarding or wrong Content-Type in frontend FormData
-- [ ] **Lambda AdminEmail empty** — test hotel has empty `AdminEmail`; capacity alerts never fire
-- [ ] **Lambda UserId wrong** — `InsertNotificationAsync` sets `UserId = AdminEmail`; notifications panel queries by Cognito `sub` so alerts never appear. Fix: add `AdminSub` to `Hotels` model + migration; auto-fill from JWT in HotelModal; update Lambda to use `AdminSub` as UserId
-- [ ] **Admin notifications panel missing** — no bell/panel in admin-client to show Lambda capacity alerts; add slide-out panel to `AdminShell.tsx` (same pattern as user client `NotificationsPanel`)
+### 10b — Admin Panel
+- [x] `GET /api/v1/admin/reservations` — new endpoint returns all reservations paginated; routed through existing `/api/v1/admin/{everything}` GET rule (no Ocelot change)
+- [x] `AdminSub` exposed in `auth-context.tsx` (parsed from Cognito Access Token `sub` claim)
+- [x] `HotelModal.tsx` sends `adminSub` on create; preserves existing `adminSub` on edit
+- [x] `AdminNotificationsPanel.tsx` — new slide-out drawer (amber alert theme), mark-read, relative timestamps
+- [x] `AdminShell.tsx` — top bar with bell icon + numeric unread badge; Dashboard / Hotels / Reservations nav items; fetches notifications on mount
+- [x] `app/reservations/page.tsx` — paginated table: hotel, room type, check-in/out, guests, price, derived status (Upcoming/Active/Completed from dates)
+- [x] `app/page.tsx` — dashboard with stat cards (total hotels, total bookings) + recent 5 bookings table
 
-### 10b — AI Agent (Focus Next)
-- [ ] **End-to-end verify** — open chat widget, send a natural language search prompt, verify `search_hotels` tool call fires to hotel-service search API and results return to user
-- [ ] **Book via agent** — send booking intent, verify `book_hotel` tool call fires and reservation is created with correct JWT forwarding
-- [ ] **Error handling** — agent returns graceful message when search returns 0 results or booking fails
-- [ ] **UI polish** — loading indicator while waiting for OpenAI response; chat history cleared on logout
+---
 
-### 10c — Frontend Features
-- [ ] My Bookings page — list user reservations (hotel name, dates, price, status)
-- [ ] My Account page — display profile info (name, email from Cognito JWT claims)
-- [ ] Show on Map — strictly required by course spec; hotel pins on interactive map
+## Phase 11 — Remaining Work
+
+### 11a — Data Reset (Planned)
+- [ ] **Wipe Supabase** — clear all rows from Hotels, Rooms, RoomAvailabilities, Reservations, Notifications, HotelImages (schema stays)
+- [ ] **Reseed** — create 10–20 hotels via admin panel (each auto-fills `AdminSub`; set `AdminEmail` to the Resend account email)
+- [ ] **Lambda E2E verify** — manual invoke after seed; confirm notification row has `UserId = <admin sub>` → appears in admin notifications panel
+
+### 11b — AI Agent (Course Requirement)
+- [x] **End-to-end wired** — `ChatWidget.tsx` handles `search_hotels` + `book_hotel` tool responses; agent calls hotel-service with user JWT
+- [x] **Error handling** — graceful inline error message when `chatWithAgent()` throws
+- [x] **UI polish** — `thinking` loading indicator (bouncing dots) while waiting for OpenAI response
+- [x] **Search guard** — `AiAgentService.cs` enforces search before fetching reviews (`fix: AI must search before fetching reviews`)
+
+### 11c — User Client Features
+- [x] My Bookings page — `app/bookings/page.tsx` — hotel name, dates, price, status badge
+- [x] My Account page — `app/account/page.tsx` — profile from Cognito ID token claims
+- [x] Show on Map — **course requirement met** — split-view with interactive Leaflet pins (`InteractiveMap.tsx`), `HotelCardCompact.tsx` for map view; `HotelMap.tsx` for detail page
 - [ ] Member discount badge — show original + discounted price in search results when signed in
 - [ ] Error toasts + loading states + skeleton screens across all flows
-- [ ] General polish — make it feel like a complete website
 
-### 10c — Architecture Cleanup
-- [ ] Repository layer — move all DB calls from service classes into dedicated repository classes
-- [ ] Custom typed exceptions — e.g. `RoomNotAvailableException`, `HotelNotFoundException` instead of `InvalidOperationException`
-- [ ] Input validation — backend DTO validation (FluentValidation or DataAnnotations); frontend form validation
-
-### 10d — Final Deliverables
+### 11d — Final Deliverables
 - [ ] `docker-compose.yml` — remove obsolete `version: "3.9"` line
 - [ ] Full end-to-end smoke test (all flows)
 - [ ] `README.md` — live URLs, architecture diagram, ER diagrams, assumptions, known issues

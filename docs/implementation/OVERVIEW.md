@@ -17,12 +17,12 @@ Detailed TODO items live in `TODO_ADMIN_AND_DEPLOY.md`. Current status lives in 
 | 5 | comments-service, notification-service, ai-agent-service, cron-jobs implementations | Done |
 | 6a | Local dev: docker-compose, credentials wired, end-to-end verified locally | Done |
 | 6b | Azure ACA deployment + CD pipeline (OIDC, GHCR, 5 services) | Done |
-| 7a | client (Next.js): search, hotel detail, booking modal, notifications, AI chat | Built, not deployed |
-| 7b | admin-client (Next.js): hotel/room/availability CRUD, login | Built, not deployed |
-| 8 | Vercel deployment, Cognito wiring, real auth in both frontends | In progress |
-| 9 | Admin missing features: room delete, image upload | Pending |
-| 10 | End-to-end verification: booking → email, AI chat, 15% discount | Pending |
-| 11 | Final deliverables: README, live URLs, architecture diagram, demo video | Pending |
+| 7 | Both frontends built and deployed to Vercel; real Cognito auth wired | Done |
+| 8 | Cognito bug fixes, Redis cache verified, booking end-to-end verified | Done |
+| 9 | Lambda + EventBridge deployed; notification pipeline E2E verified (BUG-004/009/010/011 fixed) | Done |
+| 10 | Admin panel complete: reservations page, dashboard, notifications panel, AdminSub; BUG-005/007 fixed | Done |
+| 11 | User client: My Bookings, My Account, interactive map; AI chat error handling; remaining polish | In progress |
+| 12 | Final deliverables: README, smoke test, demo video | Pending |
 
 ---
 
