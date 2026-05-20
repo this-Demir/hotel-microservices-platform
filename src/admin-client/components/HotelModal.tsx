@@ -1,7 +1,20 @@
 'use client'
 
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import type { HotelResponse, CreateHotelRequest } from '@/lib/types'
+
+const LocationPicker = dynamic(
+  () => import('./LocationPicker').then((m) => m.LocationPicker),
+  {
+    ssr: false,
+    loading: () => (
+      <div style={{ height: 220, background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: 13 }}>
+        Loading map…
+      </div>
+    ),
+  },
+)
 
 interface Props {
   hotel?: HotelResponse | null
@@ -16,6 +29,8 @@ export default function HotelModal({ hotel, onSave, onClose }: Props) {
     description: hotel?.description ?? '',
     adminEmail: hotel?.adminEmail ?? '',
   })
+  const [lat, setLat] = useState<number | null>(hotel?.latitude ?? null)
+  const [lng, setLng] = useState<number | null>(hotel?.longitude ?? null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -28,7 +43,7 @@ export default function HotelModal({ hotel, onSave, onClose }: Props) {
     setLoading(true)
     setError('')
     try {
-      await onSave(form)
+      await onSave({ ...form, latitude: lat, longitude: lng })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
       setLoading(false)
@@ -40,10 +55,16 @@ export default function HotelModal({ hotel, onSave, onClose }: Props) {
       setForm((f) => ({ ...f, [key]: e.target.value }))
   }
 
+  function handleCoordInput(field: 'lat' | 'lng', value: string) {
+    const n = parseFloat(value)
+    if (field === 'lat') setLat(isNaN(n) ? null : n)
+    else setLng(isNaN(n) ? null : n)
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[92vh] overflow-y-auto">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
           <h2 className="font-semibold text-gray-900">{hotel ? 'Edit Hotel' : 'New Hotel'}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
         </div>
@@ -64,14 +85,48 @@ export default function HotelModal({ hotel, onSave, onClose }: Props) {
           </label>
 
           <label className="block">
-            <span className="text-sm font-medium text-gray-700">Location <span className="text-gray-400 font-normal">(lat,lng)</span></span>
+            <span className="text-sm font-medium text-gray-700">Location</span>
             <input
-              className="mt-1 w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+              className="mt-1 w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
               value={form.locationPoint}
               onChange={set('locationPoint')}
-              placeholder="48.8584,2.2945"
+              placeholder="e.g. Istanbul, Turkey"
             />
           </label>
+
+          <div>
+            <span className="text-sm font-medium text-gray-700">Map Pin <span className="text-gray-400 font-normal text-xs">— click the map to place</span></span>
+            <div className="mt-2">
+              <LocationPicker lat={lat} lng={lng} onChange={(la, lo) => { setLat(la); setLng(lo) }} />
+            </div>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <label className="block">
+                <span className="text-xs text-gray-500">Latitude</span>
+                <input
+                  type="number"
+                  step="any"
+                  className="mt-0.5 w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+                  value={lat ?? ''}
+                  onChange={(e) => handleCoordInput('lat', e.target.value)}
+                  placeholder="41.0082"
+                />
+              </label>
+              <label className="block">
+                <span className="text-xs text-gray-500">Longitude</span>
+                <input
+                  type="number"
+                  step="any"
+                  className="mt-0.5 w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+                  value={lng ?? ''}
+                  onChange={(e) => handleCoordInput('lng', e.target.value)}
+                  placeholder="28.9784"
+                />
+              </label>
+            </div>
+            {lat != null && lng != null && (
+              <p className="text-xs text-gray-400 mt-1">{lat.toFixed(6)}, {lng.toFixed(6)}</p>
+            )}
+          </div>
 
           <label className="block">
             <span className="text-sm font-medium text-gray-700">Description</span>

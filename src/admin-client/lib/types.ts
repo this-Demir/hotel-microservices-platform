@@ -5,6 +5,8 @@ export interface HotelResponse {
   description: string
   adminEmail: string
   imageUrl: string | null
+  latitude: number | null
+  longitude: number | null
 }
 
 export interface CreateHotelRequest {
@@ -12,6 +14,8 @@ export interface CreateHotelRequest {
   locationPoint: string
   description: string
   adminEmail: string
+  latitude?: number | null
+  longitude?: number | null
 }
 
 export type UpdateHotelRequest = CreateHotelRequest

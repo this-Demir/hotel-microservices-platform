@@ -66,7 +66,7 @@ export async function createHotel(
 ): Promise<HotelResponse> {
   if (!API_URL) {
     await delay(400)
-    const hotel: HotelResponse = { id: uuid(), ...data, imageUrl: null }
+    const hotel: HotelResponse = { id: uuid(), ...data, imageUrl: null, latitude: data.latitude ?? null, longitude: data.longitude ?? null }
     mockHotels.push(hotel)
     return hotel
   }

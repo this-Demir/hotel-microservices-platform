@@ -8,6 +8,8 @@ export const mockHotels: HotelResponse[] = [
     description: 'Tower-view property in the heart of Paris with world-class amenities.',
     adminEmail: 'admin@eiffelsuites.com',
     imageUrl: null,
+    latitude: 48.8584,
+    longitude: 2.2945,
   },
   {
     id: 'h2',
@@ -16,6 +18,8 @@ export const mockHotels: HotelResponse[] = [
     description: 'Serene eco-resort surrounded by tropical forest in Ubud.',
     adminEmail: 'admin@balijungle.com',
     imageUrl: null,
+    latitude: -8.4095,
+    longitude: 115.1889,
   },
   {
     id: 'h3',
@@ -24,6 +28,8 @@ export const mockHotels: HotelResponse[] = [
     description: 'Contemporary Manhattan hotel with Central Park views.',
     adminEmail: 'admin@nycsky.com',
     imageUrl: null,
+    latitude: 40.7580,
+    longitude: -73.9855,
   },
 ]
 

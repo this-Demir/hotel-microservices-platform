@@ -15,6 +15,8 @@ export interface SearchResultItem {
   hotelImageUrl: string | null
   roomType: string
   price: number
+  latitude?: number | null
+  longitude?: number | null
   starRating?: number
   capacity?: number
   description?: string

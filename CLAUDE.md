@@ -96,6 +96,19 @@ on:
 ```
 Changing one service only deploys that service. Docs changes deploy nothing.
 
+## Frontend Map Pattern
+
+`react-leaflet` requires `window` and crashes during SSR. Every Leaflet component must be loaded with a dynamic import:
+
+```ts
+const HotelMap = dynamic(
+  () => import('@/components/HotelMap').then(m => m.HotelMap),
+  { ssr: false }
+)
+```
+
+`Hotel.LocationPoint` is a plain-text field (`"Istanbul, Turkey"`) used only for keyword search (`LIKE '%Istanbul%'`). It is **not** parsed as coordinates. `Hotel.Latitude` / `Hotel.Longitude` are separate nullable `double` columns used exclusively for map pin rendering. Both fields are exposed on `SearchResultItem` so the map has coordinates without an extra API call.
+
 ## Data Flow Summary
 
 ```
