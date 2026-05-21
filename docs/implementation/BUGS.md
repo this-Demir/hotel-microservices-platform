@@ -2,12 +2,7 @@
 
 ## Open
 
-### BUG-008 — Existing hotels have NULL AdminSub, Lambda alerts won't reach admin panel
-**Severity:** Low
-**Symptom:** Lambda runs but 0 notifications appear in admin panel for hotels seeded before the `AdminSub` migration.
-**Root cause:** `Hotels.AdminSub` was NULL on all rows seeded before Session 10; Lambda inserts `UserId = ""` which never matches the admin's JWT `sub`.
-**Fix:** Wipe Supabase and reseed via admin panel — new hotels auto-fill `AdminSub` from the creating admin's JWT.
-**Status:** Pending DB wipe + reseed (planned).
+No open bugs.
 
 ---
 
@@ -32,3 +27,4 @@
 | BUG-012 | Comments service returned 500 on all requests | (1) Atlas IP whitelist → `0.0.0.0/0`; (2) index creation moved from Scoped constructor to `MongoIndexInitializer : IHostedService`; (3) `GuidSerializer(Standard)` registered globally for Driver v3 compatibility | 10a |
 | BUG-005 | Hotel delete hits FK constraint returning 500 | `DeleteHotelAsync` now checks child rooms first; returns 409 with message if any exist | 10a |
 | BUG-007 | Lambda inserts notification with `AdminEmail` as `UserId` | Added `AdminSub` (nullable text) to `Hotels`; EF migration applied; `HotelModal.tsx` auto-fills from JWT `sub` on create; Lambda now uses `AdminSub ?? ""` as `UserId` | 10 |
+| BUG-008 | Existing hotels have NULL `AdminSub`, Lambda alerts won't reach admin panel | DB wiped and reseeded via admin panel — new hotels auto-fill `AdminSub` from creating admin's JWT `sub` | 11 |

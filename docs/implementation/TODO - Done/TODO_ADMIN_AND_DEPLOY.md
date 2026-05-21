@@ -10,7 +10,7 @@ Legend: ✅ Done | ⏳ Pending | 🔜 Next session
 - ✅ Create admin user in Cognito (Admin group)
 - ✅ Admin group guard in admin-client login flow
 - ✅ User client sends ID token (required for `email` claim); admin client sends access token (for `sub` + `cognito:groups`)
-- ⏳ Token refresh on 401 — store refresh token, call `grant_type=refresh_token` on expired token
+- ✅ Token refresh on 401 — store refresh token, call `grant_type=refresh_token` on expired token
 
 ## Image Upload
 - ✅ Backend endpoint `POST /api/v1/admin/hotels/{id}/images` — implemented
@@ -54,7 +54,7 @@ Legend: ✅ Done | ⏳ Pending | 🔜 Next session
 - ✅ Show on Map — split view with interactive Leaflet pins (course requirement)
 - ✅ Member 15% discount badge visible in search results
 - ✅ All navbar links functional
-- ⏳ Error toasts + loading skeletons
+- ✅ Error toasts + loading skeletons
 
 ## Data Reset (Pending)
 - ✅ Wipe Supabase rows (Hotels, Rooms, RoomAvailabilities, Reservations, Notifications, HotelImages)

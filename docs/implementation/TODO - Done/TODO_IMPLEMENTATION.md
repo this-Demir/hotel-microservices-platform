@@ -128,7 +128,7 @@ File: `src/hotel-service/Services/SearchService.cs`
 
 ---
 
-### 3.2 Database Indexes ⏳
+### 3.2 Database Indexes 
 
 ```csharp
 migrationBuilder.CreateIndex("IX_RoomAvailabilities_IsVacant_StartDate_EndDate",
@@ -138,7 +138,7 @@ migrationBuilder.CreateIndex("IX_Hotels_LocationPoint", "Hotels", "LocationPoint
 
 ---
 
-### 3.3 Search Result Ranking ⏳
+### 3.3 Search Result Ranking ✅
 
 Rank results by: star rating desc → base price asc → availability count desc.
 Pure service-layer change in `SearchService.cs`, no DB changes.
@@ -206,7 +206,7 @@ Replace `InvalidOperationException` with domain exceptions (`RoomNotAvailableExc
 
 ---
 
-### 5.1 Member Discount Display ⏳
+### 5.1 Member Discount Display ✅
 
 File: `src/client/components/HotelCard.tsx`
 
@@ -215,14 +215,14 @@ Backend already returns discounted price when JWT is present.
 
 ---
 
-### 5.2 Error Toast Notifications ⏳
+### 5.2 Error Toast Notifications ✅
 
 File: `src/client/lib/api.ts` — add toast on failed fetch.
 Add `<Toaster />` to `src/client/app/layout.tsx`.
 
 ---
 
-### 5.3 Loading States ⏳
+### 5.3 Loading States ✅
 
 - Search page: skeleton cards while fetching; spinner on search button
 - Booking modal: disable confirm button + "Booking..." text during POST
@@ -254,7 +254,7 @@ Split-view search results page (`app/search/page.tsx`) with interactive Leaflet 
 
 ---
 
-### 5.8 All Navbar Buttons Functional ⏳
+### 5.8 All Navbar Buttons Functional ✅
 
 File: `src/client/components/Header.tsx`
 - "My Bookings" → `/bookings`
@@ -264,7 +264,7 @@ File: `src/client/components/Header.tsx`
 
 ---
 
-### 5.8 Hotel Data Seeding ⏳
+### 5.8 Hotel Data Seeding ✅
 
 Seed realistic demo data after Supabase wipe.
 
@@ -284,7 +284,7 @@ Target: 10–20 hotels across 5+ cities (Istanbul, Paris, London, Dubai, New Yor
 ### 6.1 docker-compose.yml cleanup ⏳
 Delete `version: "3.9"` from line 1.
 
-### 6.2 End-to-End Smoke Test ⏳
+### 6.2 End-to-End Smoke Test ✅
 
 | Flow | Steps | Expected |
 |---|---|---|

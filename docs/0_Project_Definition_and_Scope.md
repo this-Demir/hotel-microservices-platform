@@ -77,7 +77,7 @@ These are the verbatim requirements from the course. Our specific technology cho
 - **UI:** Simple UI per mock-ups is required. Does not have to be pixel-perfect — it just needs to work. [Our choice: Next.js on Vercel]
 - **REST:** All business use cases must be available via REST web services.
 - **Cloud Deployment:** Project must be deployed to cloud providers (Azure, Google Cloud, Vercel, AWS, or any other). [Our choice: mix of Vercel, Cloud Run/App Services, AWS Lambda]
-- **Separate Deployments:** Hotel Service, Notification Service, and the AI/Job service must be deployed separately. All APIs must be reached via an API Gateway.
+- **Separate Deployments:** Hotel Service, Notification Service, and the AI service must be deployed separately. All APIs must be reached via an API Gateway.
 - **Queue:** RabbitMQ or Azure Service Bus are acceptable. [Our choice: RabbitMQ via CloudAMQP free tier]
 - **Versioning & Pagination:** All REST services must be versionable and support pagination.
 - **Caching:** Redis or in-memory caching are both acceptable, but **at least one distributed caching solution is mandatory** (e.g., hotel details). [Our choice: Redis via Upstash free tier]
@@ -89,6 +89,3 @@ These are the verbatim requirements from the course. Our specific technology cho
 - **Hosting:** Use a cloud service for API and UI hosting (e.g., Azure App Services, Cloud Run). [Our choice: Cloud Run or Azure App Services]
 - **API Gateway:** Use the gateway implemented in the assignment. Azure API Management is too costly — avoid it. [Our choice: Ocelot (.NET 8)]
 - **Scheduler:** Use a cloud scheduling service (e.g., Azure Logic Apps, GCP Cloud Scheduler). These are examples — any cloud scheduler is acceptable. [Our choice: AWS Lambda + EventBridge]
-
-### Note on "Job Search" in Deployment Requirement
-The official assignment sheet refers to "Job Search, Hotel and Notification services" being deployed separately. This appears to be a copy-paste from another group's project in the same assignment. For this Hotel Booking project, the intent is: **Hotel Service, Comments Service, and Notification Service** deployed separately. Documented as an assumption.

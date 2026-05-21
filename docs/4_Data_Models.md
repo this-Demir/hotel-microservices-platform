@@ -1,5 +1,89 @@
 # Data Models and Schemas
 
+## ER Diagrams
+
+### PostgreSQL (Supabase)
+
+```mermaid
+erDiagram
+    Hotels {
+        UUID Id PK
+        string Name
+        string LocationPoint
+        text Description
+        string AdminEmail
+        string AdminSub "nullable"
+        string ImageUrl "nullable"
+        double Latitude "nullable"
+        double Longitude "nullable"
+    }
+    Rooms {
+        UUID Id PK
+        UUID HotelId FK
+        string RoomType
+        decimal BasePrice
+    }
+    RoomAvailability {
+        UUID Id PK
+        UUID RoomId FK
+        date StartDate
+        date EndDate
+        boolean IsVacant
+        int TotalCapacity
+        int ReservedCount
+    }
+    Reservations {
+        UUID Id PK
+        UUID RoomId FK
+        string UserId
+        date CheckInDate
+        date CheckOutDate
+        int GuestCount
+        decimal PricePaid
+    }
+    Notifications {
+        UUID Id PK
+        string UserId
+        string Title
+        text Body
+        boolean IsRead
+        timestamp CreatedAt
+    }
+    HotelImages {
+        UUID Id PK
+        UUID HotelId FK
+        string Title
+        string ImageUrl
+        timestamp CreatedAt
+    }
+
+    Hotels ||--o{ Rooms : "has"
+    Rooms ||--o{ RoomAvailability : "has"
+    Rooms ||--o{ Reservations : "has"
+    Hotels ||--o{ HotelImages : "has"
+```
+
+### MongoDB Atlas (comments-service only)
+
+```mermaid
+erDiagram
+    HotelComments {
+        ObjectId _id PK
+        UUID hotelId "ref to Supabase Hotels"
+        string userId "Cognito sub"
+        date travelDate
+        float overallRating
+        object categoryRatings
+        string commentText
+        string adminReply "nullable"
+        timestamp createdAt
+    }
+```
+
+> `categoryRatings` is an embedded object with fields: `cleanliness`, `staff`, `facilities`, `ecoFriendly` (all float).
+
+---
+
 ## 1. Core Relational Database (Supabase / PostgreSQL)
 
 **Table: Hotels**
@@ -7,8 +91,18 @@
 - `Name` (String)
 - `LocationPoint` (String — human-readable location name, e.g. "Istanbul, Turkey"; used for text search)
 - `Description` (Text)
+- `AdminEmail` (String — email of the creating admin)
+- `AdminSub` (String, nullable — Cognito `sub` of the creating admin; used by Lambda to route capacity alerts)
+- `ImageUrl` (String, nullable — primary cover image URL)
 - `Latitude` (Double, nullable — decimal degrees, used for map pins)
 - `Longitude` (Double, nullable — decimal degrees, used for map pins)
+
+**Table: HotelImages**
+- `Id` (UUID, Primary Key)
+- `HotelId` (UUID, Foreign Key → Hotels)
+- `Title` (String)
+- `ImageUrl` (String — Supabase Storage public URL)
+- `CreatedAt` (Timestamp)
 
 **Table: Rooms**
 - `Id` (UUID, Primary Key)
