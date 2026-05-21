@@ -10,20 +10,26 @@ All architectural decisions, constraints, and business rules live in `/docs`. Re
 - `2_Business_Requirements.md` — business rules including booking transaction flow
 - `3_Deployment_and_DevOps.md` — deployment targets, free tier risk table, CI/CD strategy
 - `4_Data_Models.md` — all DB schemas + documented assumptions
+- `5_Assumptions.md` — all documented assumptions
+- `6_Issues_Encountered.md` — resolved bugs and infrastructure issues
 
 ## Monorepo Structure
 
 ```
 /src
-  /api-gateway          .NET 9 Ocelot reverse proxy
-  /hotel-service        .NET 9 Web API — Admin, Search, Booking
-  /comments-service     .NET 9 Web API — MongoDB only
-  /notification-service .NET 9 Web API — RabbitMQ consumer + Resend email
-  /ai-agent-service     .NET 9 Web API — OpenAI GPT-4o-mini orchestration
-  /cron-jobs            AWS Lambda (.NET 9) — nightly capacity checker
-  /client               Next.js (React) — user app: search + book
-  /admin-client         Next.js (React) — admin panel: hotel/room management
-/.github/workflows      Per-service CI/CD with path filtering
+  /api-gateway                  .NET 9 Ocelot reverse proxy
+  /hotel-service                .NET 9 Web API — Admin, Search, Booking
+  /hotel-service-tests          xUnit tests
+  /comments-service             .NET 9 Web API — MongoDB only
+  /comments-service-tests       xUnit tests
+  /notification-service         .NET 9 Web API — RabbitMQ consumer + Resend email
+  /notification-service-tests   xUnit tests
+  /ai-agent-service             .NET 9 Web API — OpenAI GPT-4o-mini orchestration
+  /ai-agent-service-tests       xUnit tests
+  /cron-jobs                    AWS Lambda (.NET 10) — nightly capacity checker
+  /client                       Next.js (React) — user app: search + book
+  /admin-client                 Next.js (React) — admin panel: hotel/room management
+/.github/workflows              Per-service CI/CD with path filtering
 ```
 
 ## Common Commands
@@ -79,7 +85,7 @@ These override any default patterns:
 | Auth | AWS Cognito | Learning purposes; Supabase Auth is documented fallback |
 | Email | Resend | SES sandbox friction; SNS is wrong tool for transactional email |
 | In-app notifications | Supabase `Notifications` table | No extra service needed |
-| Cache | Upstash Redis | Serverless, free tier, works with Cloud Run |
+| Cache | Upstash Redis | Serverless, free tier |
 | Queue | CloudAMQP (RabbitMQ) | Free tier, managed, no ops overhead |
 | AI model | GPT-4o-mini | Handles function calling; negligible cost vs GPT-4o |
 | Scheduler | AWS Lambda + EventBridge | Cloud scheduler — any cloud scheduler is acceptable per course |
@@ -90,7 +96,7 @@ Each service has its own workflow file triggered by path filtering:
 ```yaml
 on:
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - 'src/hotel-service/**'
 ```
