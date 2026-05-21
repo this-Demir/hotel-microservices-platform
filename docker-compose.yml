@@ -1,5 +1,3 @@
-version: "3.9"
-
 # All secrets come from .env (gitignored).
 # Copy .env.example → .env and fill in real values before running.
 #
