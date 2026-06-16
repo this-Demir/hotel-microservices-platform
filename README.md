@@ -1,4 +1,4 @@
-# StayEase - Hotel Booking System
+# StayEase - Microservices Hotel Booking System
 
 ![.NET](https://img.shields.io/badge/.NET_9-512BD4?style=flat&logo=dotnet&logoColor=white)
 ![Next.js](https://img.shields.io/badge/Next.js-000000?style=flat&logo=nextdotjs&logoColor=white)
@@ -43,12 +43,7 @@ The system is built on a microservices architecture with eight independently dep
 
 ## Live URLs
 
-| | URL |
-|---|---|
-| User Client | [hotel-client-gold.vercel.app](https://hotel-client-gold.vercel.app/) |
-| Admin Panel | [hotel-admin-client.vercel.app](https://hotel-admin-client.vercel.app/) |
-| API Gateway | [api-gateway.ashycoast-db26d23e.germanywestcentral.azurecontainerapps.io](https://api-gateway.ashycoast-db26d23e.germanywestcentral.azurecontainerapps.io) |
-| Demo Video | [Google Drive](https://drive.google.com/file/d/1K2_v3GMJYoYWbd0dbXpTboNO3urUTaTY/view?usp=drive_link) |
+> **Note:** The live deployment has been taken down. The services are no longer running.
 
 ---
 
@@ -107,6 +102,8 @@ graph TD
 ---
 
 ## Deployment
+
+> **Note:** The deployment has been taken down. The information below reflects the architecture as it was built and deployed.
 
 > Full CI/CD and deployment diagram: [docs/diagrams/deploy_overall.md](docs/diagrams/deploy_overall.md)
 
